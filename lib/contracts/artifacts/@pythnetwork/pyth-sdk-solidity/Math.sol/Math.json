@@ -1,0 +1,10 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "Math",
+  "sourceName": "@pythnetwork/pyth-sdk-solidity/Math.sol",
+  "abi": [],
+  "bytecode": "0x6080806040523460175760399081601c823930815050f35b5f80fdfe5f80fdfea264697066735822122070b7055d2257004a02ee2f3ffdb760398612e99bf42a54e235bb635b1cc5a06b64736f6c634300081c0033",
+  "deployedBytecode": "0x5f80fdfea264697066735822122070b7055d2257004a02ee2f3ffdb760398612e99bf42a54e235bb635b1cc5a06b64736f6c634300081c0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

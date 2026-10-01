@@ -1,0 +1,10 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "PositionArt",
+  "sourceName": "contracts/PositionArt.sol",
+  "abi": [],
+  "bytecode": "0x6080806040523460175760399081601c823930815050f35b5f80fdfe5f80fdfea2646970667358221220a2ee2527ce8f57cc596d74afcd27c2147cb388483fca88f47cd83a81af78bfe964736f6c634300081c0033",
+  "deployedBytecode": "0x5f80fdfea2646970667358221220a2ee2527ce8f57cc596d74afcd27c2147cb388483fca88f47cd83a81af78bfe964736f6c634300081c0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
