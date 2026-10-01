@@ -1,0 +1,3 @@
+module.exports=[63919,a=>{"use strict";a.s(["default",()=>b]);let b=(0,a.i(58701).registerClientReference)(function(){throw Error("Attempted to call the default export of [project]/artifacts/citrine/src/app/app/layout.tsx from the server, but it's on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.")},"[project]/artifacts/citrine/src/app/app/layout.tsx","default")},36582,a=>{"use strict";var b=a.i(63919);a.n(b)},63221,function(a){a.n(a.i(36582))}];
+
+//# sourceMappingURL=artifacts_citrine_src_app_app_layout_tsx_0554jim._.js.map

@@ -1,0 +1,39 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/app/layout,_N_T_/app/portfolio/layout,_N_T_/app/portfolio/page,_N_T_/app/portfolio"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/app/portfolio/__PAGE__"
+  ],
+  "prefetchHints": {
+    "hints": 64,
+    "slots": {
+      "children": {
+        "hints": 96,
+        "slots": {
+          "children": {
+            "hints": 96,
+            "slots": {
+              "children": {
+                "hints": 160,
+                "slots": null
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "routeCache": {
+    "key": "/route-cache/APP_PAGE/380a09e2139208ed6ce81e5cde34f505aa04e59622047289bd738e8e8bfec51f/$/app/portfolio",
+    "owner": {
+      "kind": "APP_PAGE",
+      "sourceRoute": "/app/portfolio/page"
+    },
+    "isFallback": false
+  }
+}

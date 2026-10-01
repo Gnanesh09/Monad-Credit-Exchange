@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 10, "column": 0}, "map": {"version":3,"sources":["file:///home/runner/workspace/artifacts/citrine/src/app/page.tsx"],"sourcesContent":["export default function Landing() {\n  return <main className=\"p-10\">Citrine</main>;\n}\n"],"names":["Landing","className"],"mappings":";;;;;;AAAe,SAASA;IACtB,qBAAO,+YAAC;QAAKC,WAAU;kBAAO;;;;;;AAChC"}}]
+}

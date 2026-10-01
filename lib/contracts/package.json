@@ -10,7 +10,8 @@
     "compile": "hardhat compile && node scripts/export-abi.cjs",
     "test": "hardhat test",
     "deploy:testnet": "hardhat run scripts/deploy.cjs --network monadTestnet",
-    "verify:testnet": "node scripts/verify.cjs"
+    "verify:testnet": "hardhat run scripts/verify.cjs --network monadTestnet",
+    "seed:testnet": "node scripts/seed.cjs"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.1.2",

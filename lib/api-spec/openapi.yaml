@@ -3,20 +3,23 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Citrine credit exchange API. Market data is indexed from the CitrineExchange contract on Monad testnet. Amounts are display units (tUSDC, MON, tWETH, tWBTC); timestamps are ISO 8601.
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: session
+  - name: protocol
+  - name: market
+  - name: portfolio
+security: []
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +27,1083 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /usernames/check:
+    get:
+      operationId: checkUsername
+      tags: [session]
+      summary: Check whether a guest username is free
+      parameters:
+        - name: username
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Availability
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsernameCheck"
+
+  /session:
+    post:
+      operationId: createSession
+      tags: [session]
+      summary: Enter as a guest with a username
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewSession"
+      responses:
+        "201":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Username taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: endSession
+      tags: [session]
+      summary: Sign out of the guest session
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Signed out
+
+  /session/me:
+    get:
+      operationId: getMe
+      tags: [session]
+      summary: Current guest
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Guest
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuestUser"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /session/wallet:
+    post:
+      operationId: linkWallet
+      tags: [session]
+      summary: Link a wallet to the guest by signing a message
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WalletLink"
+      responses:
+        "200":
+          description: Linked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuestUser"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: Wallet linked to another guest
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: unlinkWallet
+      tags: [session]
+      summary: Unlink the wallet from the guest
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Unlinked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuestUser"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /protocol:
+    get:
+      operationId: getProtocol
+      tags: [protocol]
+      summary: Contract addresses, parameters and indexer status
+      responses:
+        "200":
+          description: Protocol
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Protocol"
+
+  /prices:
+    get:
+      operationId: getPrices
+      tags: [protocol]
+      summary: Collateral prices from Pyth
+      responses:
+        "200":
+          description: Prices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PriceQuote"
+
+  /prices/update:
+    get:
+      operationId: getPriceUpdate
+      tags: [protocol]
+      summary: Signed Pyth update for a collateral feed, used to liquidate with a fresh price
+      parameters:
+        - name: collateral
+          in: query
+          required: true
+          description: Collateral symbol
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Update data to pass to liquidate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceUpdate"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          description: Live prices unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /market/stats:
+    get:
+      operationId: getMarketStats
+      tags: [market]
+      summary: Market totals
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketStats"
+
+  /market/requests:
+    get:
+      operationId: listRequests
+      tags: [market]
+      summary: Loan requests
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/RequestStatusFilter"
+        - name: collateral
+          in: query
+          description: Collateral symbol
+          schema:
+            type: string
+        - name: borrower
+          in: query
+          schema:
+            type: string
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [ending, newest, principal, rate]
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LoanRequest"
+
+  /market/requests/{id}:
+    get:
+      operationId: getRequest
+      tags: [market]
+      summary: Loan request with its bid history
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoanRequestDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /market/loans:
+    get:
+      operationId: listLoans
+      tags: [market]
+      summary: Loans
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/LoanStatusFilter"
+        - name: collateral
+          in: query
+          schema:
+            type: string
+        - name: holder
+          in: query
+          schema:
+            type: string
+        - name: borrower
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Loans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Loan"
+
+  /market/loans/{id}:
+    get:
+      operationId: getLoan
+      tags: [market]
+      summary: Loan with its full history
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Loan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoanDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /market/listings:
+    get:
+      operationId: listListings
+      tags: [market]
+      summary: Positions for sale on the secondary market
+      parameters:
+        - name: collateral
+          in: query
+          schema:
+            type: string
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [yield, price, maturity, newest]
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Listings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Listing"
+
+  /market/activity:
+    get:
+      operationId: listActivity
+      tags: [market]
+      summary: Onchain activity feed
+      parameters:
+        - name: address
+          in: query
+          schema:
+            type: string
+        - name: loanId
+          in: query
+          schema:
+            type: integer
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityEvent"
+
+  /market/rates:
+    get:
+      operationId: listRates
+      tags: [market]
+      summary: Clearing rates of funded loans over time
+      parameters:
+        - name: collateral
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Rate points, oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RatePoint"
+
+  /market/curve:
+    get:
+      operationId: getRateCurve
+      tags: [market]
+      summary: Average clearing rate by loan term
+      responses:
+        "200":
+          description: Curve
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CurvePoint"
+
+  /market/leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [market]
+      summary: Most active lenders and borrowers
+      responses:
+        "200":
+          description: Leaderboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Leaderboard"
+
+  /portfolio/{address}:
+    get:
+      operationId: getPortfolio
+      tags: [portfolio]
+      summary: Requests, loans, positions and history for a wallet
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Portfolio
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Portfolio"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+
+  responses:
+    BadRequest:
+      description: Invalid input
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Missing or invalid session
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
   schemas:
     HealthStatus:
       type: object
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+
+    UsernameCheck:
+      type: object
+      properties:
+        username:
+          type: string
+        available:
+          type: boolean
+        reason:
+          type: [string, "null"]
+      required: [username, available, reason]
+
+    NewSession:
+      type: object
+      properties:
+        username:
+          type: string
+      required: [username]
+
+    WalletLink:
+      type: object
+      properties:
+        address:
+          type: string
+        message:
+          type: string
+        signature:
+          type: string
+      required: [address, message, signature]
+
+    GuestUser:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        wallet:
+          type: [string, "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, username, wallet, createdAt]
+
+    Session:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/GuestUser"
+      required: [token, user]
+
+    AssetInfo:
+      type: object
+      properties:
+        address:
+          type: string
+        name:
+          type: string
+        symbol:
+          type: string
+        decimals:
+          type: integer
+        drip:
+          type: string
+      required: [address, name, symbol, decimals, drip]
+
+    CollateralInfo:
+      type: object
+      properties:
+        index:
+          type: integer
+        token:
+          type: string
+        symbol:
+          type: string
+        name:
+          type: string
+        decimals:
+          type: integer
+        priceId:
+          type: string
+        feed:
+          type: string
+        native:
+          type: boolean
+        drip:
+          type: [string, "null"]
+      required: [index, token, symbol, name, decimals, priceId, feed, native, drip]
+
+    ProtocolParameters:
+      type: object
+      properties:
+        maxRateBps:
+          type: integer
+        minBidStepBps:
+          type: integer
+        minDuration:
+          type: integer
+        maxDuration:
+          type: integer
+        minAuction:
+          type: integer
+        maxAuction:
+          type: integer
+        extensionWindow:
+          type: integer
+        maxGrace:
+          type: integer
+        liquidationLtvBps:
+          type: integer
+        liquidationPenaltyBps:
+          type: integer
+        liquidatorBountyBps:
+          type: integer
+        maxPriceAge:
+          type: integer
+      required:
+        [maxRateBps, minBidStepBps, minDuration, maxDuration, minAuction, maxAuction, extensionWindow, maxGrace, liquidationLtvBps, liquidationPenaltyBps, liquidatorBountyBps, maxPriceAge]
+
+    IndexerStatus:
+      type: object
+      properties:
+        lastBlock:
+          type: integer
+        headBlock:
+          type: integer
+        lagBlocks:
+          type: integer
+        updatedAt:
+          type: [string, "null"]
+          format: date-time
+      required: [lastBlock, headBlock, lagBlocks, updatedAt]
+
+    Protocol:
+      type: object
+      properties:
+        deployed:
+          type: boolean
+        chainId:
+          type: integer
+        chainName:
+          type: string
+        rpcUrl:
+          type: string
+        explorerUrl:
+          type: string
+        exchange:
+          type: string
+        pyth:
+          type: string
+        startBlock:
+          type: integer
+        asset:
+          $ref: "#/components/schemas/AssetInfo"
+        collaterals:
+          type: array
+          items:
+            $ref: "#/components/schemas/CollateralInfo"
+        parameters:
+          $ref: "#/components/schemas/ProtocolParameters"
+        indexer:
+          $ref: "#/components/schemas/IndexerStatus"
+        livePrices:
+          type: boolean
+          description: True when fresh signed Pyth prices are available, which liquidation requires.
+      required: [deployed, chainId, chainName, rpcUrl, explorerUrl, exchange, pyth, startBlock, asset, collaterals, parameters, indexer, livePrices]
+
+    PriceQuote:
+      type: object
+      properties:
+        symbol:
+          type: string
+        feed:
+          type: string
+        priceId:
+          type: string
+        price:
+          type: number
+        confidence:
+          type: number
+        publishTime:
+          type: string
+          format: date-time
+        source:
+          type: string
+          enum: [hermes, onchain]
+        stale:
+          type: boolean
+      required: [symbol, feed, priceId, price, confidence, publishTime, source, stale]
+
+    PriceUpdate:
+      type: object
+      properties:
+        symbol:
+          type: string
+        priceId:
+          type: string
+        price:
+          type: number
+        publishTime:
+          type: string
+          format: date-time
+        updateData:
+          type: array
+          items:
+            type: string
+      required: [symbol, priceId, price, publishTime, updateData]
+
+    MarketStats:
+      type: object
+      properties:
+        openRequests:
+          type: integer
+        activeLoans:
+          type: integer
+        activeListings:
+          type: integer
+        totalOriginated:
+          type: number
+        outstandingPrincipal:
+          type: number
+        collateralLockedUsd:
+          type: number
+        totalRepaid:
+          type: number
+        secondaryVolume:
+          type: number
+        volume24h:
+          type: number
+        averageRateBps:
+          type: [integer, "null"]
+          description: Principal-weighted clearing rate of loans funded in the last 7 days.
+        loansFunded:
+          type: integer
+        loansRepaid:
+          type: integer
+        loansDefaulted:
+          type: integer
+        loansLiquidated:
+          type: integer
+        uniqueBorrowers:
+          type: integer
+        uniqueLenders:
+          type: integer
+      required:
+        [openRequests, activeLoans, activeListings, totalOriginated, outstandingPrincipal, collateralLockedUsd, totalRepaid, secondaryVolume, volume24h, averageRateBps, loansFunded, loansRepaid, loansDefaulted, loansLiquidated, uniqueBorrowers, uniqueLenders]
+
+    RequestStatus:
+      type: string
+      enum: [open, funded, cancelled, expired]
+
+    RequestStatusFilter:
+      type: string
+      enum: [open, funded, cancelled, expired, all]
+
+    LoanStatus:
+      type: string
+      enum: [active, repaid, defaulted, liquidated]
+
+    LoanStatusFilter:
+      type: string
+      enum: [active, repaid, defaulted, liquidated, closed, all]
+
+    LoanRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        status:
+          $ref: "#/components/schemas/RequestStatus"
+        borrower:
+          type: string
+        borrowerName:
+          type: [string, "null"]
+        collateralIndex:
+          type: integer
+        collateralSymbol:
+          type: string
+        collateralAmount:
+          type: number
+        collateralValueUsd:
+          type: [number, "null"]
+        principal:
+          type: number
+        duration:
+          type: integer
+          description: Loan term in seconds
+        maxRateBps:
+          type: integer
+        bestRateBps:
+          type: [integer, "null"]
+        bestBidder:
+          type: [string, "null"]
+        bestBidderName:
+          type: [string, "null"]
+        nextBidCeilingBps:
+          type: integer
+          description: Highest rate the next bid may carry; 0 when no further bid is possible.
+        bidCount:
+          type: integer
+        ltvBps:
+          type: [integer, "null"]
+          description: Principal divided by current collateral value.
+        createdAt:
+          type: string
+          format: date-time
+        auctionEnd:
+          type: string
+          format: date-time
+        txHash:
+          type: string
+      required:
+        [id, status, borrower, borrowerName, collateralIndex, collateralSymbol, collateralAmount, collateralValueUsd, principal, duration, maxRateBps, bestRateBps, bestBidder, bestBidderName, nextBidCeilingBps, bidCount, ltvBps, createdAt, auctionEnd, txHash]
+
+    Bid:
+      type: object
+      properties:
+        bidder:
+          type: string
+        bidderName:
+          type: [string, "null"]
+        rateBps:
+          type: integer
+        auctionEnd:
+          type: string
+          format: date-time
+        timestamp:
+          type: string
+          format: date-time
+        txHash:
+          type: string
+      required: [bidder, bidderName, rateBps, auctionEnd, timestamp, txHash]
+
+    LoanRequestDetail:
+      allOf:
+        - $ref: "#/components/schemas/LoanRequest"
+        - type: object
+          properties:
+            bids:
+              type: array
+              description: Newest first
+              items:
+                $ref: "#/components/schemas/Bid"
+          required: [bids]
+
+    ListingSummary:
+      type: object
+      properties:
+        seller:
+          type: string
+        price:
+          type: number
+        listedAt:
+          type: string
+          format: date-time
+      required: [seller, price, listedAt]
+
+    Loan:
+      type: object
+      properties:
+        id:
+          type: integer
+        status:
+          $ref: "#/components/schemas/LoanStatus"
+        borrower:
+          type: string
+        borrowerName:
+          type: [string, "null"]
+        lender:
+          type: string
+        lenderName:
+          type: [string, "null"]
+        holder:
+          type: [string, "null"]
+          description: Current position owner; null once the loan has closed.
+        holderName:
+          type: [string, "null"]
+        collateralIndex:
+          type: integer
+        collateralSymbol:
+          type: string
+        collateralAmount:
+          type: number
+        collateralValueUsd:
+          type: [number, "null"]
+        principal:
+          type: number
+        rateBps:
+          type: integer
+        startTime:
+          type: string
+          format: date-time
+        maturity:
+          type: string
+          format: date-time
+        defaultAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: [string, "null"]
+          format: date-time
+        owedNow:
+          type: number
+          description: Principal plus interest accrued at response time, or the amount settled for closed loans.
+        owedAtMaturity:
+          type: number
+        ltvBps:
+          type: [integer, "null"]
+        listing:
+          oneOf:
+            - $ref: "#/components/schemas/ListingSummary"
+            - type: "null"
+      required:
+        [id, status, borrower, borrowerName, lender, lenderName, holder, holderName, collateralIndex, collateralSymbol, collateralAmount, collateralValueUsd, principal, rateBps, startTime, maturity, defaultAt, closedAt, owedNow, owedAtMaturity, ltvBps, listing]
+
+    LoanDetail:
+      allOf:
+        - $ref: "#/components/schemas/Loan"
+        - type: object
+          properties:
+            maxRateBps:
+              type: integer
+            bidCount:
+              type: integer
+            timeline:
+              type: array
+              description: Oldest first
+              items:
+                $ref: "#/components/schemas/ActivityEvent"
+          required: [maxRateBps, bidCount, timeline]
+
+    Listing:
+      type: object
+      properties:
+        loanId:
+          type: integer
+        seller:
+          type: string
+        sellerName:
+          type: [string, "null"]
+        price:
+          type: number
+        listedAt:
+          type: string
+          format: date-time
+        yieldToMaturityBps:
+          type: [integer, "null"]
+          description: Annualised return for a buyer who holds to maturity and is repaid in full.
+        loan:
+          $ref: "#/components/schemas/Loan"
+      required: [loanId, seller, sellerName, price, listedAt, yieldToMaturityBps, loan]
+
+    ActivityKind:
+      type: string
+      enum:
+        [request_created, bid_placed, request_cancelled, request_expired, loan_started, loan_repaid, loan_defaulted, loan_liquidated, listed, listing_cancelled, position_sold, position_transferred]
+
+    ActivityEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        kind:
+          $ref: "#/components/schemas/ActivityKind"
+        loanId:
+          type: integer
+        actor:
+          type: string
+        actorName:
+          type: [string, "null"]
+        counterparty:
+          type: [string, "null"]
+        counterpartyName:
+          type: [string, "null"]
+        amount:
+          type: [number, "null"]
+        symbol:
+          type: [string, "null"]
+        rateBps:
+          type: [integer, "null"]
+        timestamp:
+          type: string
+          format: date-time
+        blockNumber:
+          type: integer
+        txHash:
+          type: string
+      required: [id, kind, loanId, actor, actorName, counterparty, counterpartyName, amount, symbol, rateBps, timestamp, blockNumber, txHash]
+
+    RatePoint:
+      type: object
+      properties:
+        loanId:
+          type: integer
+        rateBps:
+          type: integer
+        duration:
+          type: integer
+        principal:
+          type: number
+        collateralSymbol:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+      required: [loanId, rateBps, duration, principal, collateralSymbol, timestamp]
+
+    CurvePoint:
+      type: object
+      properties:
+        label:
+          type: string
+        maxDuration:
+          type: integer
+          description: Upper bound of the term bucket in seconds
+        averageRateBps:
+          type: [integer, "null"]
+        minRateBps:
+          type: [integer, "null"]
+        maxRateBps:
+          type: [integer, "null"]
+        loans:
+          type: integer
+        volume:
+          type: number
+      required: [label, maxDuration, averageRateBps, minRateBps, maxRateBps, loans, volume]
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        address:
+          type: string
+        name:
+          type: [string, "null"]
+        volume:
+          type: number
+        loans:
+          type: integer
+        averageRateBps:
+          type: [integer, "null"]
+      required: [address, name, volume, loans, averageRateBps]
+
+    Leaderboard:
+      type: object
+      properties:
+        lenders:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeaderboardEntry"
+        borrowers:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeaderboardEntry"
+      required: [lenders, borrowers]
+
+    PortfolioSummary:
+      type: object
+      properties:
+        debtOutstanding:
+          type: number
+          description: Owed now across the wallet's active loans as borrower.
+        collateralLockedUsd:
+          type: number
+        positionsFaceValue:
+          type: number
+          description: Owed now across positions the wallet holds.
+        escrowedInBids:
+          type: number
+        interestEarned:
+          type: number
+          description: Interest received on repaid positions.
+        interestPaid:
+          type: number
+      required: [debtOutstanding, collateralLockedUsd, positionsFaceValue, escrowedInBids, interestEarned, interestPaid]
+
+    Portfolio:
+      type: object
+      properties:
+        address:
+          type: string
+        name:
+          type: [string, "null"]
+        summary:
+          $ref: "#/components/schemas/PortfolioSummary"
+        requests:
+          type: array
+          description: Open requests created by the wallet
+          items:
+            $ref: "#/components/schemas/LoanRequest"
+        bids:
+          type: array
+          description: Open requests where the wallet holds the best bid
+          items:
+            $ref: "#/components/schemas/LoanRequest"
+        borrowings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Loan"
+        positions:
+          type: array
+          description: Active positions the wallet holds
+          items:
+            $ref: "#/components/schemas/Loan"
+        listings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Listing"
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityEvent"
+      required: [address, name, summary, requests, bids, borrowings, positions, listings, history]

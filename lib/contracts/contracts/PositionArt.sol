@@ -20,6 +20,8 @@ library PositionArt {
         uint256 now_;
         uint8 assetDecimals;
         string assetSymbol;
+        uint8 collateralDecimals;
+        string collateralSymbol;
     }
 
     string private constant ACCENT = "#F5E04B";
@@ -46,8 +48,10 @@ library PositionArt {
             _decimal(p.principal, p.assetDecimals, 2),
             '},{"trait_type":"APR","value":',
             _decimal(p.rateBps, 2, 2),
-            '},{"trait_type":"Collateral (MON)","value":',
-            _decimal(p.collateral, 18, 4),
+            '},{"trait_type":"Collateral","value":"',
+            p.collateralSymbol,
+            '"},{"trait_type":"Collateral amount","value":',
+            _decimal(p.collateral, p.collateralDecimals, 4),
             '},{"display_type":"date","trait_type":"Maturity","value":',
             uint256(p.maturity).toString(),
             "}"
@@ -124,8 +128,10 @@ library PositionArt {
                 "</text><text x='360' y='346' fill='",
                 INK,
                 "' font-size='14' text-anchor='end'>",
-                _decimal(p.collateral, 18, 4),
-                " MON</text>"
+                _decimal(p.collateral, p.collateralDecimals, 4),
+                " ",
+                p.collateralSymbol,
+                "</text>"
             )
         );
     }

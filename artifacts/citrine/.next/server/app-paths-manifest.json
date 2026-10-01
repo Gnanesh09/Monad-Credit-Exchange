@@ -1,0 +1,14 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/app/borrow/page": "app/app/borrow/page.js",
+  "/app/lend/page": "app/app/lend/page.js",
+  "/app/loans/[id]/page": "app/app/loans/[id]/page.js",
+  "/app/page": "app/app/page.js",
+  "/app/portfolio/page": "app/app/portfolio/page.js",
+  "/app/requests/[id]/page": "app/app/requests/[id]/page.js",
+  "/app/trade/page": "app/app/trade/page.js",
+  "/icon.svg/route": "app/icon.svg/route.js",
+  "/page": "app/page.js",
+  "/start/page": "app/start/page.js"
+}

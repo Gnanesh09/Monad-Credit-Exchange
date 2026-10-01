@@ -13,12 +13,15 @@ contract RejectingBorrower {
         exchange = exchange_;
     }
 
+    /// @dev Opens a request backed by native MON (collateral type 0).
     function open(uint128 principal, uint32 duration, uint16 maxRateBps, uint32 auctionLength)
         external
         payable
         returns (uint256)
     {
-        return exchange.createRequest{value: msg.value}(principal, duration, maxRateBps, auctionLength);
+        return exchange.createRequest{value: msg.value}(
+            0, uint128(msg.value), principal, duration, maxRateBps, auctionLength
+        );
     }
 
     function cancel(uint256 id) external {
@@ -30,7 +33,7 @@ contract RejectingBorrower {
     }
 
     function claim() external {
-        exchange.claim();
+        exchange.claim(address(0));
     }
 
     receive() external payable {

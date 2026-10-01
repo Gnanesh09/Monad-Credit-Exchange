@@ -1,0 +1,14 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/app/borrow/page": "/app/borrow",
+  "/app/lend/page": "/app/lend",
+  "/app/loans/[id]/page": "/app/loans/[id]",
+  "/app/page": "/app",
+  "/app/portfolio/page": "/app/portfolio",
+  "/app/requests/[id]/page": "/app/requests/[id]",
+  "/app/trade/page": "/app/trade",
+  "/icon.svg/route": "/icon.svg",
+  "/page": "/",
+  "/start/page": "/start"
+}

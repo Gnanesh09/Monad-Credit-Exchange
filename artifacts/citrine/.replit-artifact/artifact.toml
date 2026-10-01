@@ -15,13 +15,19 @@ localPort = 19776
 run = "pnpm --filter @workspace/citrine run dev"
 
 [services.production]
-build = [ "pnpm", "--filter", "@workspace/citrine", "run", "build" ]
-serve = "static"
-publicDir = "artifacts/citrine/dist/public"
 
-[[services.production.rewrites]]
-from = "/*"
-to = "/index.html"
+[services.production.build]
+args = [ "pnpm", "--filter", "@workspace/citrine", "run", "build" ]
+
+[services.production.build.env]
+NODE_ENV = "production"
+
+[services.production.run]
+args = [ "pnpm", "--filter", "@workspace/citrine", "run", "start" ]
+
+[services.production.run.env]
+PORT = "19776"
+NODE_ENV = "production"
 
 [services.env]
 PORT = "19776"

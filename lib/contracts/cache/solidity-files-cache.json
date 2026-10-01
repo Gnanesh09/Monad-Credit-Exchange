@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "/home/runner/workspace/lib/contracts/contracts/CitrineExchange.sol": {
-      "lastModificationDate": 1790882235271,
-      "contentHash": "8a1ff4bb1099ab3045259bc09171cc14",
+      "lastModificationDate": 1790883035614,
+      "contentHash": "651d1056ddb657e545d4ee1a2e2d5b28",
       "sourceName": "contracts/CitrineExchange.sol",
       "solcConfig": {
         "version": "0.8.28",
@@ -50,8 +50,8 @@
       ]
     },
     "/home/runner/workspace/lib/contracts/contracts/PositionArt.sol": {
-      "lastModificationDate": 1790882293082,
-      "contentHash": "93f7443280867da6af0a8f49a474da7d",
+      "lastModificationDate": 1790883045447,
+      "contentHash": "2410cfda4f1c04db5bd8a3cd9cc40ead",
       "sourceName": "contracts/PositionArt.sol",
       "solcConfig": {
         "version": "0.8.28",
@@ -1135,8 +1135,8 @@
       "artifacts": []
     },
     "/home/runner/workspace/lib/contracts/contracts/test/TestHelpers.sol": {
-      "lastModificationDate": 1790882296722,
-      "contentHash": "2f9fc95faa0741398ff759b828ff6501",
+      "lastModificationDate": 1790883057606,
+      "contentHash": "83d1a7553a384fa36a9cdac0ccd66bf9",
       "sourceName": "contracts/test/TestHelpers.sol",
       "solcConfig": {
         "version": "0.8.28",
@@ -1415,10 +1415,10 @@
         "ERC20"
       ]
     },
-    "/home/runner/workspace/lib/contracts/contracts/CitrineUSD.sol": {
-      "lastModificationDate": 1790882130991,
-      "contentHash": "67bd6710d98fefbb535eb2b04ba5cc33",
-      "sourceName": "contracts/CitrineUSD.sol",
+    "/home/runner/workspace/lib/contracts/contracts/FaucetToken.sol": {
+      "lastModificationDate": 1790882961402,
+      "contentHash": "8c8d6bff5cb3fbd8d141b1143c5e5353",
+      "sourceName": "contracts/FaucetToken.sol",
       "solcConfig": {
         "version": "0.8.28",
         "settings": {
@@ -1451,7 +1451,7 @@
         "0.8.28"
       ],
       "artifacts": [
-        "CitrineUSD"
+        "FaucetToken"
       ]
     }
   }

@@ -15,20 +15,23 @@ import {PositionArt} from "./PositionArt.sol";
 /// @title Citrine credit exchange
 /// @notice Peer-to-peer fixed-term lending with market-discovered rates.
 ///
-///         1. A borrower locks native MON as collateral and opens a request for a
-///            fixed principal, term and maximum APR.
+///         1. A borrower locks collateral (native MON or an accepted token) and opens
+///            a request for a fixed principal, term and maximum APR.
 ///         2. Lenders compete in a descending-rate auction. Each bid escrows the full
 ///            principal and must undercut the best rate; the outbid lender is refunded
 ///            in the same transaction. Bids near the close extend the auction.
-///         3. The best bid funds the loan (on settlement, or earlier if the borrower
-///            accepts it). The winning lender receives an ERC-721 position that
-///            represents the right to be repaid.
+///         3. The best bid funds the loan, on settlement or earlier if the borrower
+///            accepts it. The winning lender receives an ERC-721 position that carries
+///            the right to be repaid.
 ///         4. Positions trade on a built-in secondary market. Whoever holds the
 ///            position when the loan closes receives the repayment, or the collateral.
 ///
 ///         Loans close by repayment, by default (unpaid after maturity plus a grace
-///         period), or by liquidation when the loan-to-value ratio, measured with a
-///         fresh Pyth price, crosses the liquidation threshold.
+///         period), or by liquidation once the loan-to-value ratio, measured with a
+///         fresh Pyth price, reaches the liquidation threshold.
+///
+///         The contract has no owner and no upgrade path. The loan asset is assumed to
+///         be a dollar stablecoin; collateral is valued with its Pyth USD feed.
 contract CitrineExchange is ERC721, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
@@ -53,11 +56,25 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
         Liquidated
     }
 
+    /// @notice Collateral accepted by the exchange. `token` is address(0) for native MON.
+    struct CollateralType {
+        address token;
+        uint8 decimals;
+        bytes32 priceId;
+        string symbol;
+    }
+
+    struct CollateralInit {
+        address token;
+        bytes32 priceId;
+    }
+
     struct Request {
         address borrower;
         uint40 createdAt;
         uint40 auctionEnd;
         RequestStatus status;
+        uint8 collateralType;
         uint128 principal;
         uint128 collateral;
         address bestBidder;
@@ -76,6 +93,7 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
         uint128 collateral;
         address lender;
         LoanStatus status;
+        uint8 collateralType;
         uint40 closedAt;
     }
 
@@ -102,13 +120,13 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
     uint256 public constant LIQUIDATION_PENALTY_BPS = 500;
     uint256 public constant LIQUIDATOR_BOUNTY_BPS = 50;
     uint256 public constant MAX_PRICE_AGE = 120;
+    uint256 private constant MAX_COLLATERAL_TYPES = 16;
     uint256 private constant NATIVE_SEND_GAS = 100_000;
 
     IERC20 public immutable asset;
     uint8 public immutable assetDecimals;
     uint256 public immutable minPrincipal;
     IPyth public immutable pyth;
-    bytes32 public immutable collateralPriceId;
 
     // ---------------------------------------------------------------------
     // State
@@ -116,13 +134,14 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
 
     uint256 public nextId = 1;
 
+    CollateralType[] private _collateralTypes;
     mapping(uint256 id => Request) private _requests;
     mapping(uint256 id => Loan) private _loans;
     mapping(uint256 id => Listing) private _listings;
 
-    /// @notice Payouts that could not be pushed to the recipient, withdrawable with `claim`.
-    mapping(address account => uint256 amount) public claimableAsset;
-    mapping(address account => uint256 amount) public claimableNative;
+    /// @notice Payouts that could not be pushed to the recipient, keyed by token
+    ///         (address(0) for native MON). Withdraw with `claim`.
+    mapping(address token => mapping(address account => uint256 amount)) public claimable;
 
     // ---------------------------------------------------------------------
     // Events
@@ -131,6 +150,7 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
     event RequestCreated(
         uint256 indexed id,
         address indexed borrower,
+        uint8 collateralType,
         uint256 principal,
         uint256 collateral,
         uint32 duration,
@@ -166,8 +186,8 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
     event Listed(uint256 indexed id, address indexed seller, uint256 price);
     event ListingCancelled(uint256 indexed id);
     event PositionSold(uint256 indexed id, address indexed seller, address indexed buyer, uint256 price);
-    event PayoutDeferred(address indexed account, uint256 amount, bool native);
-    event Claimed(address indexed account, uint256 assetAmount, uint256 nativeAmount);
+    event PayoutDeferred(address indexed account, address indexed token, uint256 amount);
+    event Claimed(address indexed account, address indexed token, uint256 amount);
 
     // ---------------------------------------------------------------------
     // Errors
@@ -177,6 +197,9 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
     error InvalidDuration();
     error InvalidRate();
     error InvalidAuctionLength();
+    error InvalidCollateralConfig();
+    error UnknownCollateral();
+    error ValueMismatch();
     error NotOpen();
     error AuctionClosed();
     error AuctionLive(uint256 endsAt);
@@ -197,30 +220,61 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
     error NothingToClaim();
     error NativeTransferFailed();
 
-    constructor(IERC20 asset_, IPyth pyth_, bytes32 collateralPriceId_) ERC721("Citrine Loan Position", "CLP") {
+    constructor(IERC20 asset_, IPyth pyth_, CollateralInit[] memory collaterals)
+        ERC721("Citrine Loan Position", "CLP")
+    {
+        if (collaterals.length == 0 || collaterals.length > MAX_COLLATERAL_TYPES) revert InvalidCollateralConfig();
         asset = asset_;
         uint8 decimals_ = IERC20Metadata(address(asset_)).decimals();
         assetDecimals = decimals_;
         minPrincipal = 10 ** decimals_;
         pyth = pyth_;
-        collateralPriceId = collateralPriceId_;
+
+        for (uint256 i = 0; i < collaterals.length; i++) {
+            CollateralInit memory c = collaterals[i];
+            if (c.priceId == bytes32(0) || c.token == address(asset_)) revert InvalidCollateralConfig();
+            if (c.token == address(0)) {
+                _collateralTypes.push(CollateralType(address(0), 18, c.priceId, "MON"));
+            } else {
+                IERC20Metadata t = IERC20Metadata(c.token);
+                _collateralTypes.push(CollateralType(c.token, t.decimals(), c.priceId, t.symbol()));
+            }
+        }
     }
 
     // ---------------------------------------------------------------------
     // Borrowing
     // ---------------------------------------------------------------------
 
-    /// @notice Open a loan request. `msg.value` is locked as collateral until the
-    ///         request is cancelled, expires, or the resulting loan closes.
-    function createRequest(uint128 principal, uint32 duration, uint16 maxRateBps, uint32 auctionLength)
-        external
-        payable
-        returns (uint256 id)
-    {
-        if (principal < minPrincipal || msg.value == 0) revert InvalidAmount();
+    /// @notice Open a loan request. The collateral is locked until the request is
+    ///         cancelled or expires, or the resulting loan closes. For native MON send
+    ///         `collateralAmount` as `msg.value`; for tokens approve the exchange first.
+    function createRequest(
+        uint8 collateralType,
+        uint128 collateralAmount,
+        uint128 principal,
+        uint32 duration,
+        uint16 maxRateBps,
+        uint32 auctionLength
+    ) external payable nonReentrant returns (uint256 id) {
+        if (collateralType >= _collateralTypes.length) revert UnknownCollateral();
+        if (principal < minPrincipal || collateralAmount == 0) revert InvalidAmount();
         if (duration < MIN_DURATION || duration > MAX_DURATION) revert InvalidDuration();
         if (maxRateBps == 0 || maxRateBps > MAX_RATE_BPS) revert InvalidRate();
         if (auctionLength < MIN_AUCTION || auctionLength > MAX_AUCTION) revert InvalidAuctionLength();
+
+        uint256 received;
+        address token = _collateralTypes[collateralType].token;
+        if (token == address(0)) {
+            if (msg.value != collateralAmount) revert ValueMismatch();
+            received = msg.value;
+        } else {
+            if (msg.value != 0) revert ValueMismatch();
+            uint256 balanceBefore = IERC20(token).balanceOf(address(this));
+            IERC20(token).safeTransferFrom(msg.sender, address(this), collateralAmount);
+            received = IERC20(token).balanceOf(address(this)) - balanceBefore;
+            if (received == 0) revert InvalidAmount();
+        }
 
         id = nextId++;
         uint40 auctionEnd = uint40(block.timestamp + auctionLength);
@@ -230,12 +284,13 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
         r.createdAt = uint40(block.timestamp);
         r.auctionEnd = auctionEnd;
         r.status = RequestStatus.Open;
+        r.collateralType = collateralType;
         r.principal = principal;
-        r.collateral = msg.value.toUint128();
+        r.collateral = received.toUint128();
         r.duration = duration;
         r.maxRateBps = maxRateBps;
 
-        emit RequestCreated(id, msg.sender, principal, msg.value, duration, maxRateBps, auctionEnd);
+        emit RequestCreated(id, msg.sender, collateralType, principal, received, duration, maxRateBps, auctionEnd);
     }
 
     /// @notice Fund the request immediately at the current best rate.
@@ -255,7 +310,7 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
         if (r.bestBidder != address(0)) revert HasBids();
         r.status = RequestStatus.Cancelled;
         emit RequestCancelled(id);
-        _payNative(r.borrower, r.collateral);
+        _payCollateral(r.collateralType, r.borrower, r.collateral);
     }
 
     /// @notice Pay back principal plus accrued interest. Anyone may repay on behalf
@@ -272,8 +327,8 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
 
         asset.safeTransferFrom(msg.sender, address(this), owed);
         emit LoanRepaid(id, msg.sender, holder, owed, interest);
-        _payAsset(holder, owed);
-        _payNative(l.borrower, l.collateral);
+        _payToken(asset, holder, owed);
+        _payCollateral(l.collateralType, l.borrower, l.collateral);
     }
 
     // ---------------------------------------------------------------------
@@ -313,7 +368,7 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
         if (previous != msg.sender) {
             uint256 amount = r.principal;
             asset.safeTransferFrom(msg.sender, address(this), amount);
-            if (previous != address(0)) _payAsset(previous, amount);
+            if (previous != address(0)) _payToken(asset, previous, amount);
         }
     }
 
@@ -338,7 +393,7 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
         if (r.bestBidder != address(0)) revert HasBids();
         r.status = RequestStatus.Expired;
         emit RequestExpired(id);
-        _payNative(r.borrower, r.collateral);
+        _payCollateral(r.collateralType, r.borrower, r.collateral);
     }
 
     /// @notice Seize the collateral of a loan that is unpaid past maturity plus grace.
@@ -357,26 +412,31 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
         uint256 collateral = l.collateral;
         uint256 bounty = msg.sender == holder ? 0 : (collateral * LIQUIDATOR_BOUNTY_BPS) / BPS;
         emit LoanDefaulted(id, holder, msg.sender, collateral - bounty, bounty);
-        _payNative(holder, collateral - bounty);
-        if (bounty != 0) _payNative(msg.sender, bounty);
+        _payCollateral(l.collateralType, holder, collateral - bounty);
+        if (bounty != 0) _payCollateral(l.collateralType, msg.sender, bounty);
     }
 
     /// @notice Liquidate a loan whose loan-to-value ratio is at or above the threshold.
-    ///         `priceUpdate` is a signed Pyth update from Hermes; send its update fee
-    ///         as `msg.value` (any excess is refunded). The holder receives collateral
-    ///         worth the debt plus the liquidation penalty; the rest returns to the borrower.
+    ///         `priceUpdate` is a signed Pyth update; send its update fee as `msg.value`
+    ///         (any excess is refunded). Pass an empty array if the onchain price is
+    ///         already fresh. The holder receives collateral worth the debt plus the
+    ///         liquidation penalty; the remainder returns to the borrower.
     function liquidate(uint256 id, bytes[] calldata priceUpdate) external payable nonReentrant {
         Loan storage l = _loans[id];
         if (l.status != LoanStatus.Active) revert NotActive();
+        CollateralType storage c = _collateralTypes[l.collateralType];
 
-        uint256 fee = pyth.getUpdateFee(priceUpdate);
-        if (msg.value < fee) revert InsufficientFee(fee);
-        pyth.updatePriceFeeds{value: fee}(priceUpdate);
-        PythStructs.Price memory price = pyth.getPriceNoOlderThan(collateralPriceId, MAX_PRICE_AGE);
+        uint256 fee;
+        if (priceUpdate.length != 0) {
+            fee = pyth.getUpdateFee(priceUpdate);
+            if (msg.value < fee) revert InsufficientFee(fee);
+            pyth.updatePriceFeeds{value: fee}(priceUpdate);
+        }
+        PythStructs.Price memory price = pyth.getPriceNoOlderThan(c.priceId, MAX_PRICE_AGE);
 
         (uint256 owed,) = _debt(l.principal, l.rateBps, l.startTime);
         uint256 collateral = l.collateral;
-        uint256 ltv = _ltvBps(owed, collateral, price);
+        uint256 ltv = _ltvBps(owed, collateral, price, c.decimals);
         if (ltv < LIQUIDATION_LTV_BPS) revert Healthy(ltv);
 
         address holder = _ownerOf(id);
@@ -384,15 +444,16 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
         l.closedAt = uint40(block.timestamp);
         _burn(id);
 
-        uint256 seized = _assetToCollateral((owed * (BPS + LIQUIDATION_PENALTY_BPS)) / BPS, price);
+        uint256 seized = _toCollateral((owed * (BPS + LIQUIDATION_PENALTY_BPS)) / BPS, price, c.decimals);
         if (seized > collateral) seized = collateral;
         uint256 bounty = msg.sender == holder ? 0 : (seized * LIQUIDATOR_BOUNTY_BPS) / BPS;
         uint256 returned = collateral - seized;
 
         emit LoanLiquidated(id, holder, msg.sender, seized - bounty, bounty, returned, ltv);
-        _payNative(holder, seized - bounty);
-        if (bounty != 0) _payNative(msg.sender, bounty);
-        if (returned != 0) _payNative(l.borrower, returned);
+        uint8 kind = l.collateralType;
+        _payCollateral(kind, holder, seized - bounty);
+        if (bounty != 0) _payCollateral(kind, msg.sender, bounty);
+        if (returned != 0) _payCollateral(kind, l.borrower, returned);
         if (msg.value > fee) _payNative(msg.sender, msg.value - fee);
     }
 
@@ -436,23 +497,27 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
     // Deferred payouts
     // ---------------------------------------------------------------------
 
-    function claim() external nonReentrant {
-        uint256 assetAmount = claimableAsset[msg.sender];
-        uint256 nativeAmount = claimableNative[msg.sender];
-        if (assetAmount == 0 && nativeAmount == 0) revert NothingToClaim();
-        claimableAsset[msg.sender] = 0;
-        claimableNative[msg.sender] = 0;
-        emit Claimed(msg.sender, assetAmount, nativeAmount);
-        if (assetAmount != 0) asset.safeTransfer(msg.sender, assetAmount);
-        if (nativeAmount != 0) {
-            (bool ok,) = msg.sender.call{value: nativeAmount}("");
+    /// @notice Withdraw a deferred payout. `token` is address(0) for native MON.
+    function claim(address token) external nonReentrant {
+        uint256 amount = claimable[token][msg.sender];
+        if (amount == 0) revert NothingToClaim();
+        claimable[token][msg.sender] = 0;
+        emit Claimed(msg.sender, token, amount);
+        if (token == address(0)) {
+            (bool ok,) = msg.sender.call{value: amount}("");
             if (!ok) revert NativeTransferFailed();
+        } else {
+            IERC20(token).safeTransfer(msg.sender, amount);
         }
     }
 
     // ---------------------------------------------------------------------
     // Views
     // ---------------------------------------------------------------------
+
+    function collateralTypes() external view returns (CollateralType[] memory) {
+        return _collateralTypes;
+    }
 
     function getRequest(uint256 id) external view returns (Request memory) {
         return _requests[id];
@@ -467,7 +532,7 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
     }
 
     /// @notice Amount required to repay loan `id` right now.
-    function debtOf(uint256 id) public view returns (uint256 owed, uint256 interest) {
+    function debtOf(uint256 id) external view returns (uint256 owed, uint256 interest) {
         Loan storage l = _loans[id];
         if (l.status != LoanStatus.Active) return (0, 0);
         return _debt(l.principal, l.rateBps, l.startTime);
@@ -491,6 +556,7 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
     function tokenURI(uint256 id) public view override returns (string memory) {
         _requireOwned(id);
         Loan storage l = _loans[id];
+        CollateralType storage c = _collateralTypes[l.collateralType];
         (uint256 owed,) = _debt(l.principal, l.rateBps, l.startTime);
         return PositionArt.tokenURI(
             PositionArt.Position({
@@ -503,7 +569,9 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
                 maturity: l.maturity,
                 now_: block.timestamp,
                 assetDecimals: assetDecimals,
-                assetSymbol: IERC20Metadata(address(asset)).symbol()
+                assetSymbol: IERC20Metadata(address(asset)).symbol(),
+                collateralDecimals: c.decimals,
+                collateralSymbol: c.symbol
             })
         );
     }
@@ -527,12 +595,13 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
         l.collateral = r.collateral;
         l.lender = lender;
         l.status = LoanStatus.Active;
+        l.collateralType = r.collateralType;
 
         // _mint rather than _safeMint: a lender contract without onERC721Received
         // must not be able to block settlement.
         _mint(lender, id);
         emit LoanStarted(id, r.borrower, lender, r.principal, r.collateral, r.bestRateBps, startTime, maturity);
-        _payAsset(r.borrower, r.principal);
+        _payToken(asset, r.borrower, r.principal);
     }
 
     function _debt(uint256 principal, uint256 rateBps, uint256 startTime)
@@ -549,47 +618,64 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
         return uint256(l.maturity) + gracePeriod(uint256(l.maturity) - l.startTime);
     }
 
-    /// @dev Value of `amount` wei of collateral, denominated in loan-asset units.
-    ///      Assumes the loan asset is a dollar stablecoin.
-    function _collateralValue(uint256 amount, PythStructs.Price memory price) private view returns (uint256) {
+    /// @dev Power of ten that converts collateral units times price into asset units.
+    function _scale(PythStructs.Price memory price, uint8 collateralDecimals) private view returns (int256) {
         if (price.price <= 0) revert BadPrice();
-        uint256 p = uint256(uint64(price.price));
-        int256 exp = int256(price.expo) + int256(uint256(assetDecimals)) - 18;
-        if (exp >= 0) return amount * p * 10 ** uint256(exp);
-        return Math.mulDiv(amount, p, 10 ** uint256(-exp));
+        return int256(price.expo) + int256(uint256(assetDecimals)) - int256(uint256(collateralDecimals));
     }
 
-    /// @dev Inverse of `_collateralValue`: wei of collateral worth `value` asset units.
-    function _assetToCollateral(uint256 value, PythStructs.Price memory price) private view returns (uint256) {
-        if (price.price <= 0) revert BadPrice();
-        uint256 p = uint256(uint64(price.price));
-        int256 exp = int256(price.expo) + int256(uint256(assetDecimals)) - 18;
-        if (exp >= 0) return value / (p * 10 ** uint256(exp));
-        return Math.mulDiv(value, 10 ** uint256(-exp), p);
-    }
-
-    function _ltvBps(uint256 owed, uint256 collateral, PythStructs.Price memory price)
+    /// @dev Value of `amount` collateral units, in loan-asset units.
+    function _collateralValue(uint256 amount, PythStructs.Price memory price, uint8 collateralDecimals)
         private
         view
         returns (uint256)
     {
-        uint256 value = _collateralValue(collateral, price);
+        int256 exp = _scale(price, collateralDecimals);
+        uint256 p = uint256(uint64(price.price));
+        if (exp >= 0) return Math.mulDiv(amount, p * 10 ** uint256(exp), 1);
+        return Math.mulDiv(amount, p, 10 ** uint256(-exp));
+    }
+
+    /// @dev Collateral units worth `value` loan-asset units.
+    function _toCollateral(uint256 value, PythStructs.Price memory price, uint8 collateralDecimals)
+        private
+        view
+        returns (uint256)
+    {
+        int256 exp = _scale(price, collateralDecimals);
+        uint256 p = uint256(uint64(price.price));
+        if (exp >= 0) return value / (p * 10 ** uint256(exp));
+        return Math.mulDiv(value, 10 ** uint256(-exp), p);
+    }
+
+    function _ltvBps(uint256 owed, uint256 collateral, PythStructs.Price memory price, uint8 collateralDecimals)
+        private
+        view
+        returns (uint256)
+    {
+        uint256 value = _collateralValue(collateral, price, collateralDecimals);
         if (value == 0) return type(uint256).max;
         return Math.mulDiv(owed, BPS, value);
     }
 
-    function _payAsset(address to, uint256 amount) private {
-        if (!asset.trySafeTransfer(to, amount)) {
-            claimableAsset[to] += amount;
-            emit PayoutDeferred(to, amount, false);
+    function _payCollateral(uint8 kind, address to, uint256 amount) private {
+        address token = _collateralTypes[kind].token;
+        if (token == address(0)) _payNative(to, amount);
+        else _payToken(IERC20(token), to, amount);
+    }
+
+    function _payToken(IERC20 token, address to, uint256 amount) private {
+        if (!token.trySafeTransfer(to, amount)) {
+            claimable[address(token)][to] += amount;
+            emit PayoutDeferred(to, address(token), amount);
         }
     }
 
     function _payNative(address to, uint256 amount) private {
         (bool ok,) = to.call{value: amount, gas: NATIVE_SEND_GAS}("");
         if (!ok) {
-            claimableNative[to] += amount;
-            emit PayoutDeferred(to, amount, true);
+            claimable[address(0)][to] += amount;
+            emit PayoutDeferred(to, address(0), amount);
         }
     }
 

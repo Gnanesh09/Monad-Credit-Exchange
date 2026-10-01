@@ -1,0 +1,39 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/app/layout,_N_T_/app/lend/layout,_N_T_/app/lend/page,_N_T_/app/lend"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/app/lend/__PAGE__"
+  ],
+  "prefetchHints": {
+    "hints": 64,
+    "slots": {
+      "children": {
+        "hints": 96,
+        "slots": {
+          "children": {
+            "hints": 96,
+            "slots": {
+              "children": {
+                "hints": 160,
+                "slots": null
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "routeCache": {
+    "key": "/route-cache/APP_PAGE/05e6a578c5cf30b31bd9daef52cbbbb7dc7e2b313ba4f554eee210dd5dee5903/$/app/lend",
+    "owner": {
+      "kind": "APP_PAGE",
+      "sourceRoute": "/app/lend/page"
+    },
+    "isFallback": false
+  }
+}

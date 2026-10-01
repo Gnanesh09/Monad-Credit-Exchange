@@ -14,9 +14,21 @@ export const citrineExchangeAbi = [
         "type": "address"
       },
       {
-        "internalType": "bytes32",
-        "name": "collateralPriceId_",
-        "type": "bytes32"
+        "components": [
+          {
+            "internalType": "address",
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "priceId",
+            "type": "bytes32"
+          }
+        ],
+        "internalType": "struct CitrineExchange.CollateralInit[]",
+        "name": "collaterals",
+        "type": "tuple[]"
       }
     ],
     "stateMutability": "nonpayable",
@@ -185,6 +197,11 @@ export const citrineExchangeAbi = [
   },
   {
     "inputs": [],
+    "name": "InvalidCollateralConfig",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "InvalidDuration",
     "type": "error"
   },
@@ -309,6 +326,16 @@ export const citrineExchangeAbi = [
     "type": "error"
   },
   {
+    "inputs": [],
+    "name": "UnknownCollateral",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ValueMismatch",
+    "type": "error"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {
@@ -405,15 +432,15 @@ export const citrineExchangeAbi = [
         "type": "address"
       },
       {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "assetAmount",
-        "type": "uint256"
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
       },
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "nativeAmount",
+        "name": "amount",
         "type": "uint256"
       }
     ],
@@ -646,16 +673,16 @@ export const citrineExchangeAbi = [
         "type": "address"
       },
       {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
         "indexed": false,
         "internalType": "uint256",
         "name": "amount",
         "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bool",
-        "name": "native",
-        "type": "bool"
       }
     ],
     "name": "PayoutDeferred",
@@ -719,6 +746,12 @@ export const citrineExchangeAbi = [
         "internalType": "address",
         "name": "borrower",
         "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "collateralType",
+        "type": "uint8"
       },
       {
         "indexed": false,
@@ -1113,7 +1146,13 @@ export const citrineExchangeAbi = [
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
+    ],
     "name": "claim",
     "outputs": [],
     "stateMutability": "nonpayable",
@@ -1136,30 +1175,16 @@ export const citrineExchangeAbi = [
     "inputs": [
       {
         "internalType": "address",
-        "name": "account",
+        "name": "token",
         "type": "address"
-      }
-    ],
-    "name": "claimableAsset",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
+      },
       {
         "internalType": "address",
         "name": "account",
         "type": "address"
       }
     ],
-    "name": "claimableNative",
+    "name": "claimable",
     "outputs": [
       {
         "internalType": "uint256",
@@ -1172,12 +1197,34 @@ export const citrineExchangeAbi = [
   },
   {
     "inputs": [],
-    "name": "collateralPriceId",
+    "name": "collateralTypes",
     "outputs": [
       {
-        "internalType": "bytes32",
+        "components": [
+          {
+            "internalType": "address",
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "internalType": "uint8",
+            "name": "decimals",
+            "type": "uint8"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "priceId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "string",
+            "name": "symbol",
+            "type": "string"
+          }
+        ],
+        "internalType": "struct CitrineExchange.CollateralType[]",
         "name": "",
-        "type": "bytes32"
+        "type": "tuple[]"
       }
     ],
     "stateMutability": "view",
@@ -1185,6 +1232,16 @@ export const citrineExchangeAbi = [
   },
   {
     "inputs": [
+      {
+        "internalType": "uint8",
+        "name": "collateralType",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint128",
+        "name": "collateralAmount",
+        "type": "uint128"
+      },
       {
         "internalType": "uint128",
         "name": "principal",
@@ -1376,6 +1433,11 @@ export const citrineExchangeAbi = [
             "type": "uint8"
           },
           {
+            "internalType": "uint8",
+            "name": "collateralType",
+            "type": "uint8"
+          },
+          {
             "internalType": "uint40",
             "name": "closedAt",
             "type": "uint40"
@@ -1419,6 +1481,11 @@ export const citrineExchangeAbi = [
           {
             "internalType": "enum CitrineExchange.RequestStatus",
             "name": "status",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "collateralType",
             "type": "uint8"
           },
           {
@@ -1815,9 +1882,30 @@ export const citrineExchangeAbi = [
   }
 ] as const;
 
-export const citrineUsdAbi = [
+export const faucetTokenAbi = [
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "name_",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "symbol_",
+        "type": "string"
+      },
+      {
+        "internalType": "uint8",
+        "name": "decimals_",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "dripAmount_",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "constructor"
   },
@@ -1989,19 +2077,6 @@ export const citrineUsdAbi = [
   },
   {
     "inputs": [],
-    "name": "FAUCET_AMOUNT",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "FAUCET_COOLDOWN",
     "outputs": [
       {
@@ -2090,7 +2165,20 @@ export const citrineUsdAbi = [
         "type": "uint8"
       }
     ],
-    "stateMutability": "pure",
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "dripAmount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {

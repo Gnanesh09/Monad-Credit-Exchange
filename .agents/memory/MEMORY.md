@@ -1,0 +1,4 @@
+- [Monad + Pyth quirks](monad-pyth.md) — Hermes needs an API key since Aug 2026; onchain Pyth on Monad testnet is stale; Monad bills the gas limit.
+- [Monad RPC and indexing](monad-rpc-indexing.md) — load-balanced RPC: index to finalized minus a margin, pin reads to that block; single writer via a MongoDB lease.
+- [Contracts toolchain](contracts-toolchain.md) — chai matchers cannot be chained after emit; deployer key doubles as the keeper key, so stop the API before scripts send.
+- [Web and proxy gotchas](web-gotchas.md) — Next 16 allowedDevOrigins and SSR Date.now() hydration; Replit proxy rewrites X-Forwarded-For.
