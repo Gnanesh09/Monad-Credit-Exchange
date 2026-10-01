@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Citrine"
+description = "Citrine is a decentralized credit exchange on Monad. Borrowers post collateralized loan requests with amount, duration and a maximum rate; lenders compete in onchain rate auctions to fund them, so the market discovers the borrowing rate. Funded loans become tradable position NFTs that lenders can sell on a secondary market before maturity. Frontend in Next.js with wallet connectivity; Express + MongoDB indexer backend."
+version = "1.0.0"
+id = "artifacts/citrine"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19776
+
+[services.development]
+run = "pnpm --filter @workspace/citrine run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/citrine", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/citrine/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19776"
+BASE_PATH = "/"
