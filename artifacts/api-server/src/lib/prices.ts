@@ -1,155 +1,112 @@
+import { convertDataPackagesResponse, getSignersForDataServiceId, requestDataPackages } from "@redstone-finance/sdk";
+import type { Hex } from "viem";
 import { deployment, PROTOCOL, type CollateralInfo } from "@workspace/contracts";
-import { errorSummary, publicClient } from "./chain";
+import { errorSummary } from "./chain";
 import { logger } from "./logger";
 
-const HERMES_URL = (process.env.PYTH_HERMES_URL || "https://pyth.dourolabs.app/hermes").replace(/\/$/, "");
-const HERMES_INTERVAL_MS = 10_000;
-const ONCHAIN_INTERVAL_MS = 30_000;
-/** Hermes counts as live if its last successful response is this recent. */
+/**
+ * Collateral prices come from RedStone's primary production data service, the same nodes the
+ * exchange trusts onchain. Display quotes are read from RedStone's light prices API every few
+ * seconds. Liquidations need signed data packages instead: those are fetched on demand from the
+ * RedStone gateways and appended to the liquidate calldata, where the contract verifies the
+ * signatures and takes the median.
+ */
+const PRICES_URL = (process.env.REDSTONE_PRICES_URL || "https://api.redstone.finance/prices").replace(/\/$/, "");
+const REFRESH_MS = 10_000;
+/** Prices count as live if the last successful refresh is this recent. */
 const LIVE_WINDOW_MS = 60_000;
 
-const pythAbi = [
-  {
-    type: "function",
-    name: "getPriceUnsafe",
-    stateMutability: "view",
-    inputs: [{ name: "id", type: "bytes32" }],
-    outputs: [
-      {
-        name: "price",
-        type: "tuple",
-        components: [
-          { name: "price", type: "int64" },
-          { name: "conf", type: "uint64" },
-          { name: "expo", type: "int32" },
-          { name: "publishTime", type: "uint256" },
-        ],
-      },
-    ],
-  },
-] as const;
+const { dataServiceId, uniqueSigners } = deployment.oracle;
+const authorizedSigners = getSignersForDataServiceId(dataServiceId as Parameters<typeof getSignersForDataServiceId>[0]);
 
 export interface Quote {
   symbol: string;
   feed: string;
-  priceId: string;
+  feedId: string;
   price: number;
-  confidence: number;
   publishTime: Date;
-  source: "hermes" | "onchain";
+  source: "redstone";
   stale: boolean;
 }
 
-export interface SignedUpdate {
+export interface SignedPrice {
   symbol: string;
-  priceId: string;
+  feedId: string;
+  /** Median of the signed values, which is what the contract uses. */
   price: number;
   publishTime: Date;
-  updateData: string[];
+  signers: string[];
+  /** RedStone payload to append to the liquidate calldata. */
+  payload: Hex;
 }
 
-interface HermesResponse {
-  binary: { encoding: string; data: string[] };
-  parsed?: Array<{ id: string; price: { price: string; conf: string; expo: number; publish_time: number } }>;
+interface PricesApiEntry {
+  value?: unknown;
+  timestamp?: unknown;
 }
 
 export class PricesUnavailableError extends Error {}
 
 const quotes = new Map<string, Quote>();
-let lastHermesSuccess = 0;
+let lastSuccess = 0;
 let timer: NodeJS.Timeout | null = null;
-
-const strip = (id: string) => id.toLowerCase().replace(/^0x/, "");
-
-function apiKey(): string | null {
-  return process.env.PYTH_API_KEY || null;
-}
-
-function scaled(value: string | bigint, expo: number): number {
-  return Number(value) * 10 ** expo;
-}
 
 function isStale(publishTime: Date): boolean {
   return Date.now() - publishTime.getTime() > PROTOCOL.MAX_PRICE_AGE * 1000;
 }
 
-async function fetchHermes(priceIds: string[]): Promise<HermesResponse> {
-  const key = apiKey();
-  if (!key) throw new PricesUnavailableError("Live Pyth prices are not configured.");
-  const params = new URLSearchParams();
-  for (const id of priceIds) params.append("ids[]", id);
-  params.set("parsed", "true");
-  params.set("encoding", "hex");
-  const response = await fetch(`${HERMES_URL}/v2/updates/price/latest?${params.toString()}`, {
-    headers: { Authorization: `Bearer ${key}`, Accept: "application/json" },
-    signal: AbortSignal.timeout(8_000),
-  });
-  if (!response.ok) throw new PricesUnavailableError(`Hermes responded with ${response.status}`);
-  return (await response.json()) as HermesResponse;
-}
-
-function quoteFromHermes(collateral: CollateralInfo, data: HermesResponse): Quote | null {
-  const entry = data.parsed?.find((p) => strip(p.id) === strip(collateral.priceId));
-  if (!entry) return null;
-  const publishTime = new Date(entry.price.publish_time * 1000);
-  return {
+/** Keeps the newest price seen for a collateral, from either source. */
+function remember(collateral: CollateralInfo, price: number, publishTime: Date): void {
+  const known = quotes.get(collateral.symbol);
+  if (known && known.publishTime > publishTime) return;
+  quotes.set(collateral.symbol, {
     symbol: collateral.symbol,
     feed: collateral.feed,
-    priceId: collateral.priceId,
-    price: scaled(entry.price.price, entry.price.expo),
-    confidence: scaled(entry.price.conf, entry.price.expo),
+    feedId: collateral.feedId,
+    price,
     publishTime,
-    source: "hermes",
+    source: "redstone",
     stale: isStale(publishTime),
-  };
+  });
 }
 
-async function refreshFromHermes(): Promise<boolean> {
-  try {
-    const data = await fetchHermes(deployment.collaterals.map((c) => c.priceId));
-    for (const collateral of deployment.collaterals) {
-      const quote = quoteFromHermes(collateral, data);
-      if (quote) quotes.set(collateral.symbol, quote);
-    }
-    lastHermesSuccess = Date.now();
-    return true;
-  } catch (error) {
-    logger.warn({ err: errorSummary(error) }, "Hermes price refresh failed");
-    return false;
+/** Same aggregation as the RedStone contracts: the middle value, or the mean of the middle two. */
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+async function refreshFromPricesApi(): Promise<boolean> {
+  const symbols = deployment.collaterals.map((c) => c.feedId).join(",");
+  const response = await fetch(`${PRICES_URL}?symbols=${encodeURIComponent(symbols)}&provider=${dataServiceId}`, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(8_000),
+  });
+  if (!response.ok) throw new Error(`RedStone prices API responded with ${response.status}`);
+  const data = (await response.json()) as Record<string, PricesApiEntry | undefined>;
+  let updated = 0;
+  for (const collateral of deployment.collaterals) {
+    const entry = data[collateral.feedId];
+    if (typeof entry?.value !== "number" || !(entry.value > 0) || typeof entry.timestamp !== "number") continue;
+    remember(collateral, entry.value, new Date(entry.timestamp));
+    updated++;
   }
-}
-
-async function refreshFromChain(): Promise<void> {
-  await Promise.all(
-    deployment.collaterals.map(async (collateral) => {
-      try {
-        const p = await publicClient.readContract({
-          address: deployment.pyth,
-          abi: pythAbi,
-          functionName: "getPriceUnsafe",
-          args: [collateral.priceId],
-        });
-        const publishTime = new Date(Number(p.publishTime) * 1000);
-        quotes.set(collateral.symbol, {
-          symbol: collateral.symbol,
-          feed: collateral.feed,
-          priceId: collateral.priceId,
-          price: scaled(p.price, p.expo),
-          confidence: scaled(p.conf, p.expo),
-          publishTime,
-          source: "onchain",
-          stale: isStale(publishTime),
-        });
-      } catch (error) {
-        logger.warn({ symbol: collateral.symbol, err: errorSummary(error) }, "Onchain price read failed");
-      }
-    }),
-  );
+  return updated > 0;
 }
 
 async function refresh(): Promise<void> {
-  const live = apiKey() ? await refreshFromHermes() : false;
-  if (!live) await refreshFromChain();
+  try {
+    if (await refreshFromPricesApi()) {
+      lastSuccess = Date.now();
+      return;
+    }
+    logger.warn("RedStone prices API returned no usable prices");
+  } catch (error) {
+    logger.warn({ err: errorSummary(error) }, "RedStone price refresh failed");
+  }
+  // Fall back to the signed packages, which carry the same prices.
+  await Promise.allSettled(deployment.collaterals.map((c) => signedPrice(c)));
 }
 
 export async function startPriceService(): Promise<void> {
@@ -158,10 +115,10 @@ export async function startPriceService(): Promise<void> {
     timer = setTimeout(async () => {
       await refresh();
       loop();
-    }, apiKey() ? HERMES_INTERVAL_MS : ONCHAIN_INTERVAL_MS);
+    }, REFRESH_MS);
   };
   loop();
-  logger.info({ source: livePricesAvailable() ? "hermes" : "onchain", quotes: quotes.size }, "Price service started");
+  logger.info({ source: "redstone", dataServiceId, quotes: quotes.size, live: livePricesAvailable() }, "Price service started");
 }
 
 export function stopPriceService(): void {
@@ -173,10 +130,10 @@ function current(quote: Quote | undefined): Quote | null {
   return quote ? { ...quote, stale: isStale(quote.publishTime) } : null;
 }
 
-/** True when Hermes answered recently and at least one of its prices is fresh. */
+/** True when RedStone answered recently and at least one of its prices is fresh. */
 export function livePricesAvailable(): boolean {
-  if (!apiKey() || Date.now() - lastHermesSuccess >= LIVE_WINDOW_MS) return false;
-  return [...quotes.values()].some((q) => q.source === "hermes" && !isStale(q.publishTime));
+  if (Date.now() - lastSuccess >= LIVE_WINDOW_MS) return false;
+  return [...quotes.values()].some((q) => !isStale(q.publishTime));
 }
 
 export function allQuotes(): Quote[] {
@@ -195,41 +152,64 @@ export function freshQuote(symbol: string): Quote | null {
 }
 
 /**
- * Signed updates are shared so bursts of requests make one Hermes call: a pending request is
+ * Signed prices are shared so bursts of requests make one gateway call: a pending request is
  * always reused, and a resolved one for a few seconds after it arrived.
  */
-const UPDATE_SHARE_MS = 3_000;
-const sharedUpdates = new Map<string, { resolvedAt: number | null; promise: Promise<SignedUpdate> }>();
+const SHARE_MS = 3_000;
+const shared = new Map<string, { resolvedAt: number | null; promise: Promise<SignedPrice> }>();
 
-/** Fresh signed update for one collateral feed, to pass to liquidate(). */
-export function signedUpdate(collateral: CollateralInfo): Promise<SignedUpdate> {
-  const key = collateral.priceId;
-  const shared = sharedUpdates.get(key);
-  if (shared && (shared.resolvedAt === null || Date.now() - shared.resolvedAt < UPDATE_SHARE_MS)) return shared.promise;
-  const entry: { resolvedAt: number | null; promise: Promise<SignedUpdate> } = { resolvedAt: null, promise: fetchSignedUpdate(collateral) };
-  sharedUpdates.set(key, entry);
+/** Fresh signed price for one collateral feed, ready to append to liquidate(). */
+export function signedPrice(collateral: CollateralInfo): Promise<SignedPrice> {
+  const key = collateral.feedId;
+  const known = shared.get(key);
+  if (known && (known.resolvedAt === null || Date.now() - known.resolvedAt < SHARE_MS)) return known.promise;
+  const entry: { resolvedAt: number | null; promise: Promise<SignedPrice> } = { resolvedAt: null, promise: fetchSignedPrice(collateral) };
+  shared.set(key, entry);
   entry.promise.then(
     () => {
       entry.resolvedAt = Date.now();
     },
     () => {
-      if (sharedUpdates.get(key) === entry) sharedUpdates.delete(key);
+      if (shared.get(key) === entry) shared.delete(key);
     },
   );
   return entry.promise;
 }
 
-async function fetchSignedUpdate(collateral: CollateralInfo): Promise<SignedUpdate> {
-  const data = await fetchHermes([collateral.priceId]);
-  const quote = quoteFromHermes(collateral, data);
-  if (!quote || !data.binary?.data?.length) throw new PricesUnavailableError("Hermes returned no update for this feed.");
-  lastHermesSuccess = Date.now();
-  quotes.set(collateral.symbol, quote);
+function numericValue(point: { toObj(): unknown }): number {
+  const value = (point.toObj() as { value?: unknown }).value;
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n) || n <= 0) throw new PricesUnavailableError("RedStone returned a price that is not a positive number.");
+  return n;
+}
+
+async function fetchSignedPrice(collateral: CollateralInfo): Promise<SignedPrice> {
+  let response: Awaited<ReturnType<typeof requestDataPackages>>;
+  try {
+    response = await requestDataPackages({
+      dataServiceId,
+      dataPackagesIds: [collateral.feedId],
+      uniqueSignersCount: uniqueSigners,
+      authorizedSigners,
+    });
+  } catch (error) {
+    throw new PricesUnavailableError(`RedStone gateways returned no signed ${collateral.feedId} price: ${errorSummary(error)}`);
+  }
+  const packages = response[collateral.feedId];
+  if (!packages || packages.length < uniqueSigners) {
+    throw new PricesUnavailableError(`RedStone returned too few signed ${collateral.feedId} prices.`);
+  }
+  const price = median(packages.map((p) => numericValue(p.dataPackage.dataPoints[0])));
+  const publishTime = new Date(Math.min(...packages.map((p) => p.dataPackage.timestampMilliseconds)));
+  remember(collateral, price, publishTime);
+  lastSuccess = Date.now();
+  const hex = convertDataPackagesResponse(response, "hex");
   return {
     symbol: collateral.symbol,
-    priceId: collateral.priceId,
-    price: quote.price,
-    publishTime: quote.publishTime,
-    updateData: data.binary.data.map((d) => (d.startsWith("0x") ? d : `0x${d}`)),
+    feedId: collateral.feedId,
+    price,
+    publishTime,
+    signers: packages.map((p) => p.recoverSignerAddress()),
+    payload: (hex.startsWith("0x") ? hex : `0x${hex}`) as Hex,
   };
 }

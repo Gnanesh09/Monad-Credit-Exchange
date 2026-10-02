@@ -5,7 +5,7 @@ Citrine is a credit exchange on Monad. Borrowers lock collateral and post a loan
 Built for the Metropolis Hackathon, Track 01: Onchain Finance & Trading.
 
 - **Network:** Monad Testnet (chain id 10143)
-- **Exchange contract:** [`0x13fF594bDe49d0c15d957770D20B117C12B8B008`](https://testnet.monadexplorer.com/address/0x13fF594bDe49d0c15d957770D20B117C12B8B008)
+- **Exchange contract:** [`0x3a4eBbA0b4944661C1428D84A37730b7a4119569`](https://testnet.monadexplorer.com/address/0x3a4eBbA0b4944661C1428D84A37730b7a4119569)
 - **Live app:** _add the published URL here_
 - **Demo video:** _add the video link here_
 
@@ -30,7 +30,7 @@ Citrine prices each loan on its own. Every request gets an open auction, so the 
 5. **Secondary market.** A holder can list the position at a fixed tUSDC price. A buyer pays the seller and takes over the right to be repaid. The Trade page shows each listing's yield to maturity.
 6. **Repayment.** Interest is simple interest, accrued per second. The borrower can repay at any time and pays only for the time the loan was open. The collateral is released in the same transaction.
 7. **Default.** If the loan is not repaid by maturity plus a grace period (10% of the term, at most 1 day), anyone can claim the default. The collateral goes to the holder, and the caller gets a 0.5% bounty.
-8. **Liquidation.** If the debt reaches 85% of the collateral's value at a Pyth price no older than 120 seconds, anyone can liquidate the loan, pushing a fresh signed Pyth update in the same transaction. The holder receives collateral worth the debt plus a 5% penalty. The liquidator gets a 0.5% bounty out of that, and the rest goes back to the borrower.
+8. **Liquidation.** If the debt reaches 85% of the collateral's value, anyone can liquidate the loan. The liquidator attaches a RedStone price signed by three independent RedStone nodes to the transaction. The contract checks the signatures, uses the median, and rejects prices older than 120 seconds. The holder receives collateral worth the debt plus a 5% penalty. The liquidator gets a 0.5% bounty out of that, and the rest goes back to the borrower.
 
 Settling auctions, expiring requests, claiming defaults and liquidating are all permissionless. The backend runs a keeper that calls them automatically, so nothing depends on a person pressing a button.
 
@@ -39,7 +39,7 @@ Settling auctions, expiring requests, claiming defaults and liquidating are all 
 - **Fast blocks make short auctions practical.** With sub-second blocks, a one-minute auction and its 60-second anti-sniping window behave as designed, and bids, accepts and repayments confirm almost immediately.
 - **Every bid is a real transfer.** Escrowing the new bid and refunding the previous one is a token transfer on every bid. This only works if transactions are cheap and confirm quickly.
 - **Full EVM compatibility.** The contracts are standard Solidity built on OpenZeppelin. The frontend uses wagmi and viem with any injected wallet.
-- **Pyth on Monad.** Collateral is valued with Pyth's Monad testnet deployment, and liquidations push fresh signed prices onchain.
+- **Signed prices travel with the transaction.** RedStone's pull model needs no oracle contract that someone keeps updating. A liquidation carries its own signed price in calldata, and on Monad the extra calldata and three signature checks cost very little. RedStone also publishes a MON/USD feed, so native MON works as collateral.
 
 ## Architecture
 
@@ -52,7 +52,6 @@ flowchart LR
   subgraph Monad[Monad Testnet]
     EX[CitrineExchange<br/>auctions, escrow, loans,<br/>ERC-721 positions, listings]
     T[tUSDC / tWETH / tWBTC<br/>faucet tokens]
-    PY[Pyth]
   end
   subgraph Server[API server]
     API[Express REST API]
@@ -61,23 +60,24 @@ flowchart LR
     PRICE[Price service]
   end
   DB[(MongoDB)]
-  HERMES[Pyth Hermes]
+  RS[RedStone<br/>prices API and signed data packages]
 
   UI -- REST --> API
   UI -- wagmi / viem --> Wallet -- transactions --> EX
   EX --- T
-  EX -- reads prices --> PY
   IDX -- getLogs + state reads --> EX
   IDX --> DB
   API --> DB
   KEEP -- settle / expire / claimDefault / liquidate --> EX
-  PRICE --> HERMES
-  KEEP --> PRICE
+  PRICE --> RS
+  KEEP -- signed price --> PRICE
+  UI -- signed price for liquidate --> API
 ```
 
 - **Contracts (`lib/contracts`).** `CitrineExchange` holds all collateral and escrowed funds. It runs the auctions, tracks loans, mints and burns the position NFTs, and runs the fixed-price secondary market. `PositionArt` renders each position's SVG onchain. `FaucetToken` is the rate-limited test token used for tUSDC, tWETH and tWBTC.
 - **Indexer.** Reads exchange events in 100-block ranges, up to a few blocks behind Monad's finalized block. After each batch, it re-reads the affected requests and loans from the contract at that batch's block, so the stored state always matches the chain. Once a minute it re-reads every open request and active loan to catch any missed update.
 - **Keeper.** Settles ended auctions, expires requests with no bids, claims defaults and liquidates unhealthy loans. It simulates every call first and only sends transactions that will succeed.
+- **Prices.** The exchange inherits RedStone's `PrimaryProdDataServiceConsumerBase`. A liquidation appends a RedStone payload to the `liquidate` calldata; the contract recovers each signer, requires three distinct nodes from the `redstone-primary-prod` service, and takes the median. The API's price service reads display prices for MON, ETH and BTC from RedStone's prices API every 10 seconds, and fetches signed data packages from RedStone's gateways only when the keeper or a user's wallet needs one. No API key is needed.
 - **One writer at a time.** If more than one API instance runs, they elect a leader through an expiring lease in MongoDB. Only the leader indexes and sends keeper transactions; the others serve reads. The leader checks the lease again after every chain read and right before every write or broadcast, and the stored block cursor only moves forward.
 - **API.** A read model over MongoDB: market stats, auctions, loans, listings, the rate curve, activity, and per-wallet portfolios. It also handles guest sessions and wallet linking. The API never holds user funds or user keys. All money moves through users' own wallets.
 - **Guest identity.** There is no sign-up and no password. A visitor picks a username and gets a guest session stored on their device. They can link a wallet by signing a message, and their name then appears next to their bids and loans. Entering a name that already exists offers to continue as that guest. If the guest has a linked wallet, continuing needs a fresh signature from that wallet, and linking a wallet signs the guest out on other devices, so the wallet is what protects the name.
@@ -87,13 +87,12 @@ flowchart LR
 
 | Contract | Address |
 | --- | --- |
-| CitrineExchange (also the ERC-721 position contract) | [`0x13fF594bDe49d0c15d957770D20B117C12B8B008`](https://testnet.monadexplorer.com/address/0x13fF594bDe49d0c15d957770D20B117C12B8B008) |
-| tUSDC (loan asset, 6 decimals) | [`0x4ea7743b9D44ed04273293C34ccED14dD70e52f7`](https://testnet.monadexplorer.com/address/0x4ea7743b9D44ed04273293C34ccED14dD70e52f7) |
-| tWETH (collateral, 18 decimals) | [`0xC58f71ea5030C8D01B1c343aE40430087B05e9a2`](https://testnet.monadexplorer.com/address/0xC58f71ea5030C8D01B1c343aE40430087B05e9a2) |
-| tWBTC (collateral, 8 decimals) | [`0x470290C58748e56835362052387F9d94EB17f1fd`](https://testnet.monadexplorer.com/address/0x470290C58748e56835362052387F9d94EB17f1fd) |
-| Pyth (official Monad testnet deployment) | [`0x2880aB155794e7179c9eE2e38200202908C17B43`](https://testnet.monadexplorer.com/address/0x2880aB155794e7179c9eE2e38200202908C17B43) |
+| CitrineExchange (also the ERC-721 position contract) | [`0x3a4eBbA0b4944661C1428D84A37730b7a4119569`](https://testnet.monadexplorer.com/address/0x3a4eBbA0b4944661C1428D84A37730b7a4119569) |
+| tUSDC (loan asset, 6 decimals) | [`0x4559De5D1052f5d95635355273839BB42BB4d2D6`](https://testnet.monadexplorer.com/address/0x4559De5D1052f5d95635355273839BB42BB4d2D6) |
+| tWETH (collateral, 18 decimals) | [`0xf00735aaf54fF0Aeed45dFdbA18D57D38840aAb3`](https://testnet.monadexplorer.com/address/0xf00735aaf54fF0Aeed45dFdbA18D57D38840aAb3) |
+| tWBTC (collateral, 8 decimals) | [`0x9FD4372692B873B94088c9Ac831cDC27769744b6`](https://testnet.monadexplorer.com/address/0x9FD4372692B873B94088c9Ac831cDC27769744b6) |
 
-MON is accepted as native collateral. The exchange was deployed at block 67341995 (transaction [`0x58f161e8…`](https://testnet.monadexplorer.com/tx/0x58f161e8c51107d0ace991bfd4d5ab5ad69d8404f45780d5b6cfdb186ec850ba)), and its source is verified through Sourcify. The full deployment record is in `lib/contracts/src/deployments.ts`.
+MON is accepted as native collateral. Prices come from RedStone's `redstone-primary-prod` data service (MON, ETH and BTC feeds), verified inside the exchange, so there is no separate oracle contract address. The exchange was deployed at block 67463993 (transaction [`0xd49c6961…`](https://testnet.monadexplorer.com/tx/0xd49c69615d4dcd00aab334cade66f2b2f9099e3fa92275a470acfa5f4b7865a9)), and all four contracts are verified through Sourcify. The full deployment record is in `lib/contracts/src/deployments.ts`.
 
 ### Protocol parameters
 
@@ -112,8 +111,8 @@ MON is accepted as native collateral. The exchange was deployed at block 6734199
 
 ## Technology stack
 
-- **Contracts:** Solidity 0.8.28, Hardhat, OpenZeppelin Contracts 5, Pyth Solidity SDK
-- **Backend:** Node.js 24, Express 5, MongoDB Node driver 6, viem, Zod, pino
+- **Contracts:** Solidity 0.8.28, Hardhat, OpenZeppelin Contracts 5, RedStone EVM connector
+- **Backend:** Node.js 24, Express 5, MongoDB Node driver 6, viem, RedStone SDK, Zod, pino
 - **Frontend:** Next.js 16 (App Router, Turbopack), React 19, wagmi 2 and viem, TanStack Query, Tailwind CSS, Radix UI (shadcn/ui), Framer Motion, Recharts, lucide-react
 - **Tooling:** pnpm workspaces, TypeScript 5.9, Orval (OpenAPI to React Query hooks and Zod schemas), esbuild
 
@@ -152,8 +151,7 @@ pnpm install
 | `DEPLOYER_PRIVATE_KEY` | for deploying and the keeper | Deploys contracts. The keeper also uses it unless `KEEPER_PRIVATE_KEY` is set |
 | `KEEPER_PRIVATE_KEY` | no | Separate key for the keeper |
 | `KEEPER_ENABLED` | no | Set to `false` to turn the keeper off |
-| `PYTH_API_KEY` | no | Pyth Hermes API key for live prices and liquidations. Without it, prices are read from the Pyth contract and may be stale, so liquidations pause; defaults still work |
-| `PYTH_HERMES_URL` | no | Hermes endpoint (default `https://pyth.dourolabs.app/hermes`) |
+| `REDSTONE_PRICES_URL` | no | RedStone prices API for display prices (default `https://api.redstone.finance/prices`). No key needed |
 | `MONAD_RPC_URL` | no | RPC endpoint (default `https://testnet-rpc.monad.xyz`) |
 | `PORT` | yes | Port for the API server |
 
@@ -184,7 +182,7 @@ The deploy script deploys the three faucet tokens and the exchange, then records
 
 ## Testnet demo data
 
-To make the market active from the first visit, the testnet exchange was seeded with `lib/contracts/scripts/seed.cjs`. It sends real transactions from four team-controlled wallets: several auctions that settled into loans, a repayment, a default claimed by the keeper, two secondary listings (one of them sold), and a few live auctions. These wallets are not linked to any usernames. All other activity comes from real users.
+To make the market active from the first visit, the testnet exchange was seeded with `lib/contracts/scripts/seed.cjs`. It sends real transactions from four team-controlled wallets: several auctions that settled into loans, a repayment, a default claimed by the keeper, a loan opened at about 90% LTV that the keeper liquidated with a signed RedStone price, two secondary listings (one of them sold), and a few live auctions. These wallets are not linked to any usernames. All other activity comes from real users.
 
 ## AI tools disclosure
 
@@ -197,7 +195,7 @@ The repository started from Replit's pnpm monorepo template. The template provid
 Third-party code used, under its own license:
 
 - [OpenZeppelin Contracts](https://github.com/OpenZeppelin/openzeppelin-contracts) (MIT): ERC-721, SafeERC20, ReentrancyGuard and math utilities
-- [Pyth Solidity SDK](https://github.com/pyth-network/pyth-crosschain) (Apache-2.0): price feed interfaces
+- [RedStone Oracles](https://github.com/redstone-finance/redstone-oracles-monorepo): `@redstone-finance/evm-connector` (the consumer contracts the exchange inherits to verify signed prices), `@redstone-finance/sdk` (fetches signed data packages in the API) and `@redstone-finance/protocol` (signs mock packages in the tests). Their package metadata says MIT, but each package ships the Business Source License 1.1 from Distributed Data Labs, and the core consumer contracts compiled into `CitrineExchange` carry BUSL-1.1 headers. The helper libraries and mock signers used from the connector are MIT. BUSL-1.1 allows non-production use, which covers this testnet deployment; a mainnet launch would need RedStone's permission. The packages are installed from npm, not copied into this repository.
 - [shadcn/ui](https://ui.shadcn.com) (MIT) and [Radix UI](https://www.radix-ui.com) (MIT): UI primitives
 - [Next.js](https://nextjs.org), [React](https://react.dev), [wagmi](https://wagmi.sh), [viem](https://viem.sh), [TanStack Query](https://tanstack.com/query), [Express](https://expressjs.com), [Framer Motion](https://www.framer.com/motion), [Recharts](https://recharts.org), [lucide](https://lucide.dev) (MIT)
 - [MongoDB Node.js driver](https://github.com/mongodb/node-mongodb-native) (Apache-2.0)
@@ -205,4 +203,4 @@ Third-party code used, under its own license:
 
 ## License
 
-[MIT](LICENSE)
+Citrine's own code is released under the [MIT License](LICENSE). Third-party packages keep their own licenses, listed above.

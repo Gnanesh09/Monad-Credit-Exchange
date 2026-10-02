@@ -211,7 +211,7 @@ paths:
     get:
       operationId: getPrices
       tags: [protocol]
-      summary: Collateral prices from Pyth
+      summary: Collateral prices from RedStone
       responses:
         "200":
           description: Prices
@@ -226,7 +226,7 @@ paths:
     get:
       operationId: getPriceUpdate
       tags: [protocol]
-      summary: Signed Pyth update for a collateral feed, used to liquidate with a fresh price
+      summary: Signed RedStone price for a collateral feed, appended to the liquidate calldata
       parameters:
         - name: collateral
           in: query
@@ -236,7 +236,7 @@ paths:
             type: string
       responses:
         "200":
-          description: Update data to pass to liquidate
+          description: Signed payload to append to the liquidate calldata
           content:
             application/json:
               schema:
@@ -642,15 +642,16 @@ components:
           type: string
         decimals:
           type: integer
-        priceId:
+        feedId:
           type: string
+          description: RedStone data feed id, such as ETH
         feed:
           type: string
         native:
           type: boolean
         drip:
           type: [string, "null"]
-      required: [index, token, symbol, name, decimals, priceId, feed, native, drip]
+      required: [index, token, symbol, name, decimals, feedId, feed, native, drip]
 
     ProtocolParameters:
       type: object
@@ -711,8 +712,8 @@ components:
           type: string
         exchange:
           type: string
-        pyth:
-          type: string
+        oracle:
+          $ref: "#/components/schemas/OracleInfo"
         startBlock:
           type: integer
         asset:
@@ -727,8 +728,22 @@ components:
           $ref: "#/components/schemas/IndexerStatus"
         livePrices:
           type: boolean
-          description: True when fresh signed Pyth prices are available, which liquidation requires.
-      required: [deployed, chainId, chainName, rpcUrl, explorerUrl, exchange, pyth, startBlock, asset, collaterals, parameters, indexer, livePrices]
+          description: True when fresh RedStone prices are available, which liquidation requires.
+      required: [deployed, chainId, chainName, rpcUrl, explorerUrl, exchange, oracle, startBlock, asset, collaterals, parameters, indexer, livePrices]
+
+    OracleInfo:
+      type: object
+      properties:
+        provider:
+          type: string
+          enum: [RedStone]
+        dataServiceId:
+          type: string
+          description: RedStone data service whose nodes the exchange trusts
+        uniqueSigners:
+          type: integer
+          description: Distinct trusted signers required for each price
+      required: [provider, dataServiceId, uniqueSigners]
 
     PriceQuote:
       type: object
@@ -737,39 +752,42 @@ components:
           type: string
         feed:
           type: string
-        priceId:
+        feedId:
           type: string
         price:
-          type: number
-        confidence:
           type: number
         publishTime:
           type: string
           format: date-time
         source:
           type: string
-          enum: [hermes, onchain]
+          enum: [redstone]
         stale:
           type: boolean
-      required: [symbol, feed, priceId, price, confidence, publishTime, source, stale]
+      required: [symbol, feed, feedId, price, publishTime, source, stale]
 
     PriceUpdate:
       type: object
       properties:
         symbol:
           type: string
-        priceId:
+        feedId:
           type: string
         price:
           type: number
+          description: Median of the signed prices, which the contract will use
         publishTime:
           type: string
           format: date-time
-        updateData:
+        signers:
           type: array
           items:
             type: string
-      required: [symbol, priceId, price, publishTime, updateData]
+          description: RedStone nodes that signed this price
+        payload:
+          type: string
+          description: Hex RedStone payload to append to the liquidate calldata
+      required: [symbol, feedId, price, publishTime, signers, payload]
 
     MarketStats:
       type: object

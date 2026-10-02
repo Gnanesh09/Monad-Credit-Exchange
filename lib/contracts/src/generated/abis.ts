@@ -9,11 +9,6 @@ export const citrineExchangeAbi = [
         "type": "address"
       },
       {
-        "internalType": "contract IPyth",
-        "name": "pyth_",
-        "type": "address"
-      },
-      {
         "components": [
           {
             "internalType": "address",
@@ -22,7 +17,7 @@ export const citrineExchangeAbi = [
           },
           {
             "internalType": "bytes32",
-            "name": "priceId",
+            "name": "feedId",
             "type": "bytes32"
           }
         ],
@@ -53,6 +48,36 @@ export const citrineExchangeAbi = [
   {
     "inputs": [],
     "name": "BadPrice",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "CalldataMustHaveValidPayload",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "CalldataOverOrUnderFlow",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "CanNotPickMedianOfEmptyArray",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "DataPackageTimestampMustNotBeZero",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "DataPackageTimestampsMustBeEqual",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "DataTimestampCannotBeZero",
     "type": "error"
   },
   {
@@ -160,6 +185,21 @@ export const citrineExchangeAbi = [
   },
   {
     "inputs": [],
+    "name": "EachSignerMustProvideTheSameValue",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "EmptyCalldataPointersArr",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "GetDataServiceIdNotImplemented",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "HasBids",
     "type": "error"
   },
@@ -175,14 +215,24 @@ export const citrineExchangeAbi = [
     "type": "error"
   },
   {
+    "inputs": [],
+    "name": "IncorrectUnsignedMetadataSize",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "required",
+        "name": "receivedSignersCount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "requiredSignersCount",
         "type": "uint256"
       }
     ],
-    "name": "InsufficientFee",
+    "name": "InsufficientNumberOfUniqueSigners",
     "type": "error"
   },
   {
@@ -193,6 +243,11 @@ export const citrineExchangeAbi = [
   {
     "inputs": [],
     "name": "InvalidAuctionLength",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidCalldataPointer",
     "type": "error"
   },
   {
@@ -208,6 +263,17 @@ export const citrineExchangeAbi = [
   {
     "inputs": [],
     "name": "InvalidRate",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "signedHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "InvalidSignature",
     "type": "error"
   },
   {
@@ -281,11 +347,27 @@ export const citrineExchangeAbi = [
     "inputs": [
       {
         "internalType": "uint256",
+        "name": "signedAt",
+        "type": "uint256"
+      }
+    ],
+    "name": "PriceFromFuture",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
         "name": "maxAllowedBps",
         "type": "uint256"
       }
     ],
     "name": "RateTooHigh",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "RedstonePayloadMustHaveAtLeastOneDataPackage",
     "type": "error"
   },
   {
@@ -323,6 +405,44 @@ export const citrineExchangeAbi = [
   {
     "inputs": [],
     "name": "SelfBid",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "receivedSigner",
+        "type": "address"
+      }
+    ],
+    "name": "SignerNotAuthorised",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "signedAt",
+        "type": "uint256"
+      }
+    ],
+    "name": "StalePrice",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "TimestampsMustBeEqual",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "valueByteSize",
+        "type": "uint256"
+      }
+    ],
+    "name": "TooLargeValueByteSize",
     "type": "error"
   },
   {
@@ -1023,6 +1143,25 @@ export const citrineExchangeAbi = [
   {
     "inputs": [
       {
+        "internalType": "uint256[]",
+        "name": "values",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "aggregateValues",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "to",
         "type": "address"
@@ -1213,7 +1352,7 @@ export const citrineExchangeAbi = [
           },
           {
             "internalType": "bytes32",
-            "name": "priceId",
+            "name": "feedId",
             "type": "bytes32"
           },
           {
@@ -1331,6 +1470,19 @@ export const citrineExchangeAbi = [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "extractTimestampsAndAssertAllAreEqual",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "extractedTimestamp",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -1344,6 +1496,38 @@ export const citrineExchangeAbi = [
         "internalType": "address",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "signerAddress",
+        "type": "address"
+      }
+    ],
+    "name": "getAuthorisedSignerIndex",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getDataServiceId",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
       }
     ],
     "stateMutability": "view",
@@ -1533,6 +1717,19 @@ export const citrineExchangeAbi = [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "getUniqueSignersThreshold",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -1581,16 +1778,11 @@ export const citrineExchangeAbi = [
         "internalType": "uint256",
         "name": "id",
         "type": "uint256"
-      },
-      {
-        "internalType": "bytes[]",
-        "name": "priceUpdate",
-        "type": "bytes[]"
       }
     ],
     "name": "liquidate",
     "outputs": [],
-    "stateMutability": "payable",
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -1662,19 +1854,6 @@ export const citrineExchangeAbi = [
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "pyth",
-    "outputs": [
-      {
-        "internalType": "contract IPyth",
         "name": "",
         "type": "address"
       }
@@ -1878,6 +2057,19 @@ export const citrineExchangeAbi = [
     "name": "transferFrom",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "receivedTimestampMilliseconds",
+        "type": "uint256"
+      }
+    ],
+    "name": "validateTimestamp",
+    "outputs": [],
+    "stateMutability": "view",
     "type": "function"
   }
 ] as const;

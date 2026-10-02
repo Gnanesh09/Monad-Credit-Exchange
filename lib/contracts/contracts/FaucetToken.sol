@@ -6,7 +6,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 /// @title Faucet token
 /// @notice Test token for Monad testnet. Anyone can draw a fixed amount once per
 ///         cooldown window. Used for the loan asset (tUSDC) and the test collaterals
-///         (tWETH, tWBTC), which the exchange prices with live Pyth feeds.
+///         (tWETH, tWBTC), which the exchange prices with live RedStone feeds.
 contract FaucetToken is ERC20 {
     uint256 public constant FAUCET_COOLDOWN = 1 hours;
 

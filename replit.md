@@ -8,11 +8,11 @@ A decentralized credit exchange on Monad testnet: borrowers post collateralized 
 - `pnpm run typecheck` — typecheck all packages; `pnpm --filter @workspace/citrine run build` — production build of the web app.
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate React Query hooks and Zod schemas after editing `lib/api-spec/openapi.yaml`.
 - Contracts: `pnpm --filter @workspace/contracts run compile | test | deploy:testnet | verify:testnet | seed:testnet`.
-- Secrets: `MONGODB_URI`, `DEPLOYER_PRIVATE_KEY` (deployer and keeper key). Optional: `PYTH_API_KEY` (live Hermes prices; without it liquidations pause), `MONAD_RPC_URL`, `KEEPER_ENABLED=false`.
+- Secrets: `MONGODB_URI`, `DEPLOYER_PRIVATE_KEY` (deployer and keeper key). Optional: `REDSTONE_PRICES_URL`, `MONAD_RPC_URL`, `KEEPER_ENABLED=false`. Prices come from RedStone (`redstone-primary-prod`) and need no API key.
 
 ## Stack
 
-- Contracts: Solidity 0.8.28 + Hardhat + OpenZeppelin 5 + Pyth (`lib/contracts`).
+- Contracts: Solidity 0.8.28 + Hardhat + OpenZeppelin 5 + RedStone pull oracle (`lib/contracts`). `liquidate(id)` reads a payload signed by 3 RedStone nodes from the end of its calldata (viem `dataSuffix`); the API serves it from `/api/prices/update`.
 - API: Express 5, MongoDB driver (no ORM; `lib/db`), viem, Zod generated from OpenAPI.
 - Web: Next.js 16 App Router (Turbopack), wagmi 2 + viem, TanStack Query, Tailwind, shadcn/ui, Framer Motion, Recharts.
 

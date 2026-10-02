@@ -875,7 +875,7 @@ function StatusLine() {
             }, this),
             protocol.data && !protocol.data.livePrices && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$3$2e$8_$40$types$2b$node$40$25$2e$9$2e$6_react$2d$dom$40$19$2e$1$2e$0_react$40$19$2e$1$2e$0_$5f$react$40$19$2e$1$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 className: "text-warning",
-                children: "Live Pyth prices unavailable"
+                children: "Live RedStone prices unavailable"
             }, void 0, false, {
                 fileName: "[project]/artifacts/citrine/src/components/citrine/shell.tsx",
                 lineNumber: 72,
@@ -2792,7 +2792,7 @@ function usePriceMap() {
     });
     const map = {};
     for (const c of __TURBOPACK__imported__module__$5b$project$5d2f$artifacts$2f$citrine$2f$src$2f$lib$2f$web3$2f$contracts$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["collaterals"]){
-        map[c.symbol] = q.data?.find((p)=>p.priceId.toLowerCase() === c.priceId.toLowerCase()) ?? q.data?.find((p)=>p.symbol === c.symbol);
+        map[c.symbol] = q.data?.find((p)=>p.feedId === c.feedId) ?? q.data?.find((p)=>p.symbol === c.symbol);
     }
     return {
         ...q,
@@ -2892,7 +2892,6 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$sonner$40$2$2e$0$2e$8_$40$types$2b$react$40$19$2e$3$2e$0_react$2d$dom$40$19$2e$1$2e$0_react$40$19$2e$1$2e$0_$5f$react$40$19$2e$1$2e$0$2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/.pnpm/sonner@2.0.8_@types+react@19.3.0_react-dom@19.1.0_react@19.1.0__react@19.1.0/node_modules/sonner/dist/index.mjs [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$viem$40$2$2e$57$2e$1_bufferutil$40$4$2e$1$2e$0_typescript$40$5$2e$9$2e$3_utf$2d$8$2d$validate$40$5$2e$0$2e$10_zod$40$3$2e$25$2e$76$2f$node_modules$2f$viem$2f$_esm$2f$actions$2f$public$2f$estimateContractGas$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/.pnpm/viem@2.57.1_bufferutil@4.1.0_typescript@5.9.3_utf-8-validate@5.0.10_zod@3.25.76/node_modules/viem/_esm/actions/public/estimateContractGas.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$contracts$2f$src$2f$index$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/lib/contracts/src/index.ts [app-client] (ecmascript) <locals>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$contracts$2f$src$2f$deployments$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/contracts/src/deployments.ts [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$contracts$2f$src$2f$generated$2f$abis$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/contracts/src/generated/abis.ts [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2d$client$2d$react$2f$src$2f$index$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/lib/api-client-react/src/index.ts [app-client] (ecmascript) <locals>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2d$client$2d$react$2f$src$2f$generated$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/api-client-react/src/generated/api.ts [app-client] (ecmascript)");
@@ -2914,25 +2913,6 @@ var _s = __turbopack_context__.k.signature();
 ;
 ;
 ;
-const pythFeeAbi = [
-    {
-        type: "function",
-        name: "getUpdateFee",
-        stateMutability: "view",
-        inputs: [
-            {
-                name: "updateData",
-                type: "bytes[]"
-            }
-        ],
-        outputs: [
-            {
-                name: "feeAmount",
-                type: "uint256"
-            }
-        ]
-    }
-];
 // The contract calls below are assembled at runtime from several ABIs, so the strongly
 // typed wagmi signatures are widened once here.
 const simulate = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$wagmi$2b$core$40$2$2e$22$2e$1_$40$tanstack$2b$query$2d$core$40$5$2e$102$2e$8_$40$types$2b$react$40$19$2e$3$2e$0_react$40$19$2e$1$2e$0_typesc_a1bc8a7df071194d732d969c9dff1b26$2f$node_modules$2f40$wagmi$2f$core$2f$dist$2f$esm$2f$actions$2f$simulateContract$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["simulateContract"];
@@ -3107,14 +3087,14 @@ function useCitrineActions() {
     }["useCitrineActions.useCallback[approvalSteps]"], [
         config
     ]);
-    const exchangeStep = (title, functionName, args, value)=>({
+    const exchangeStep = (title, functionName, args, extra = {})=>({
             title,
             call: {
                 address: __TURBOPACK__imported__module__$5b$project$5d2f$artifacts$2f$citrine$2f$src$2f$lib$2f$web3$2f$contracts$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["exchangeContract"].address,
                 abi: __TURBOPACK__imported__module__$5b$project$5d2f$artifacts$2f$citrine$2f$src$2f$lib$2f$web3$2f$contracts$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["exchangeContract"].abi,
                 functionName,
                 args,
-                value
+                ...extra
             }
         });
     const actions = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$3$2e$8_$40$types$2b$node$40$25$2e$9$2e$6_react$2d$dom$40$19$2e$1$2e$0_react$40$19$2e$1$2e$0_$5f$react$40$19$2e$1$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMemo"])({
@@ -3149,7 +3129,9 @@ function useCitrineActions() {
                                         input.duration,
                                         input.maxRateBps,
                                         input.auctionLength
-                                    ], collateral.native ? input.collateralAmount : undefined)
+                                    ], {
+                                        value: collateral.native ? input.collateralAmount : undefined
+                                    })
                                 ];
                             }
                         }["useCitrineActions.useMemo[actions]"])
@@ -3277,33 +3259,16 @@ function useCitrineActions() {
                 liquidate: ({
                     "useCitrineActions.useMemo[actions]": (id, collateralSymbol)=>execute("Liquidate loan", {
                             "useCitrineActions.useMemo[actions]": async ()=>{
-                                // Without a signed Hermes update, the contract can still use an onchain price that is fresh.
-                                const update = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2d$client$2d$react$2f$src$2f$generated$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getPriceUpdate"])({
+                                // Fetched at the last moment: the contract accepts signed prices up to two minutes old.
+                                const signed = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2d$client$2d$react$2f$src$2f$generated$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getPriceUpdate"])({
                                     collateral: collateralSymbol
-                                }).catch({
-                                    "useCitrineActions.useMemo[actions]": ()=>null
-                                }["useCitrineActions.useMemo[actions]"]);
-                                if (!update) return [
-                                    exchangeStep("Liquidate at the onchain Pyth price", "liquidate", [
-                                        BigInt(id),
-                                        []
-                                    ], 0n)
-                                ];
-                                const updateData = update.updateData;
-                                const fee = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$wagmi$2b$core$40$2$2e$22$2e$1_$40$tanstack$2b$query$2d$core$40$5$2e$102$2e$8_$40$types$2b$react$40$19$2e$3$2e$0_react$40$19$2e$1$2e$0_typesc_a1bc8a7df071194d732d969c9dff1b26$2f$node_modules$2f40$wagmi$2f$core$2f$dist$2f$esm$2f$actions$2f$readContract$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["readContract"])(config, {
-                                    address: __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$contracts$2f$src$2f$deployments$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["deployment"].pyth,
-                                    abi: pythFeeAbi,
-                                    functionName: "getUpdateFee",
-                                    args: [
-                                        updateData
-                                    ],
-                                    chainId: __TURBOPACK__imported__module__$5b$project$5d2f$artifacts$2f$citrine$2f$src$2f$lib$2f$web3$2f$config$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["monadTestnet"].id
                                 });
                                 return [
-                                    exchangeStep("Liquidate with a fresh Pyth price", "liquidate", [
-                                        BigInt(id),
-                                        updateData
-                                    ], fee)
+                                    exchangeStep("Liquidate with a signed RedStone price", "liquidate", [
+                                        BigInt(id)
+                                    ], {
+                                        dataSuffix: signed.payload
+                                    })
                                 ];
                             }
                         }["useCitrineActions.useMemo[actions]"])
@@ -3460,12 +3425,15 @@ const MESSAGES = {
     PriceAboveMax: ()=>"The price changed. Review it and try again.",
     OwnListing: ()=>"You cannot buy your own listing.",
     BadPrice: ()=>"The oracle returned an invalid price.",
-    InsufficientFee: ()=>"The oracle update fee was not covered.",
     NothingToClaim: ()=>"There is nothing to claim.",
     FaucetCoolingDown: ()=>"You can use the faucet once an hour.",
     ERC20InsufficientBalance: ()=>"Your token balance is too low.",
     ERC20InsufficientAllowance: ()=>"The token approval is too low.",
-    StalePrice: ()=>"The oracle price is stale. A fresh price update is needed."
+    StalePrice: ()=>"The signed price expired before the transaction landed. Try again.",
+    PriceFromFuture: ()=>"The signed price is ahead of the chain clock. Try again in a moment.",
+    CalldataMustHaveValidPayload: ()=>"The transaction is missing its signed RedStone price.",
+    InsufficientNumberOfUniqueSigners: ()=>"Not enough RedStone nodes signed this price. Try again.",
+    SignerNotAuthorised: ()=>"The price was signed by a node the exchange does not trust."
 };
 function readableError(error) {
     if (error instanceof __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$viem$40$2$2e$57$2e$1_bufferutil$40$4$2e$1$2e$0_typescript$40$5$2e$9$2e$3_utf$2d$8$2d$validate$40$5$2e$0$2e$10_zod$40$3$2e$25$2e$76$2f$node_modules$2f$viem$2f$_esm$2f$errors$2f$base$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["BaseError"]) {

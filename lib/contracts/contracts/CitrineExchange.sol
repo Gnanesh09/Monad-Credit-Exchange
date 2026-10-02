@@ -8,8 +8,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {IPyth} from "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
-import {PythStructs} from "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
+import {PrimaryProdDataServiceConsumerBase} from
+    "@redstone-finance/evm-connector/contracts/data-services/PrimaryProdDataServiceConsumerBase.sol";
 import {PositionArt} from "./PositionArt.sol";
 
 /// @title Citrine credit exchange
@@ -28,11 +28,12 @@ import {PositionArt} from "./PositionArt.sol";
 ///
 ///         Loans close by repayment, by default (unpaid after maturity plus a grace
 ///         period), or by liquidation once the loan-to-value ratio, measured with a
-///         fresh Pyth price, reaches the liquidation threshold.
+///         fresh RedStone price, reaches the liquidation threshold.
 ///
 ///         The contract has no owner and no upgrade path. The loan asset is assumed to
-///         be a dollar stablecoin; collateral is valued with its Pyth USD feed.
-contract CitrineExchange is ERC721, ReentrancyGuard {
+///         be a dollar stablecoin; collateral is valued with its RedStone USD feed,
+///         signed by RedStone's primary production nodes and delivered in calldata.
+contract CitrineExchange is ERC721, ReentrancyGuard, PrimaryProdDataServiceConsumerBase {
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
 
@@ -57,16 +58,17 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
     }
 
     /// @notice Collateral accepted by the exchange. `token` is address(0) for native MON.
+    ///         `feedId` is the RedStone data feed that prices it in USD, such as "ETH".
     struct CollateralType {
         address token;
         uint8 decimals;
-        bytes32 priceId;
+        bytes32 feedId;
         string symbol;
     }
 
     struct CollateralInit {
         address token;
-        bytes32 priceId;
+        bytes32 feedId;
     }
 
     struct Request {
@@ -120,13 +122,15 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
     uint256 public constant LIQUIDATION_PENALTY_BPS = 500;
     uint256 public constant LIQUIDATOR_BOUNTY_BPS = 50;
     uint256 public constant MAX_PRICE_AGE = 120;
+    uint256 private constant MAX_CLOCK_SKEW = 1 minutes;
+    /// @dev RedStone numeric values carry eight decimals.
+    uint256 private constant PRICE_DECIMALS = 8;
     uint256 private constant MAX_COLLATERAL_TYPES = 16;
     uint256 private constant NATIVE_SEND_GAS = 100_000;
 
     IERC20 public immutable asset;
     uint8 public immutable assetDecimals;
     uint256 public immutable minPrincipal;
-    IPyth public immutable pyth;
 
     // ---------------------------------------------------------------------
     // State
@@ -216,11 +220,12 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
     error PriceAboveMax(uint256 price);
     error OwnListing();
     error BadPrice();
-    error InsufficientFee(uint256 required);
+    error StalePrice(uint256 signedAt);
+    error PriceFromFuture(uint256 signedAt);
     error NothingToClaim();
     error NativeTransferFailed();
 
-    constructor(IERC20 asset_, IPyth pyth_, CollateralInit[] memory collaterals)
+    constructor(IERC20 asset_, CollateralInit[] memory collaterals)
         ERC721("Citrine Loan Position", "CLP")
     {
         if (collaterals.length == 0 || collaterals.length > MAX_COLLATERAL_TYPES) revert InvalidCollateralConfig();
@@ -228,16 +233,15 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
         uint8 decimals_ = IERC20Metadata(address(asset_)).decimals();
         assetDecimals = decimals_;
         minPrincipal = 10 ** decimals_;
-        pyth = pyth_;
 
         for (uint256 i = 0; i < collaterals.length; i++) {
             CollateralInit memory c = collaterals[i];
-            if (c.priceId == bytes32(0) || c.token == address(asset_)) revert InvalidCollateralConfig();
+            if (c.feedId == bytes32(0) || c.token == address(asset_)) revert InvalidCollateralConfig();
             if (c.token == address(0)) {
-                _collateralTypes.push(CollateralType(address(0), 18, c.priceId, "MON"));
+                _collateralTypes.push(CollateralType(address(0), 18, c.feedId, "MON"));
             } else {
                 IERC20Metadata t = IERC20Metadata(c.token);
-                _collateralTypes.push(CollateralType(c.token, t.decimals(), c.priceId, t.symbol()));
+                _collateralTypes.push(CollateralType(c.token, t.decimals(), c.feedId, t.symbol()));
             }
         }
     }
@@ -417,22 +421,16 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
     }
 
     /// @notice Liquidate a loan whose loan-to-value ratio is at or above the threshold.
-    ///         `priceUpdate` is a signed Pyth update; send its update fee as `msg.value`
-    ///         (any excess is refunded). Pass an empty array if the onchain price is
-    ///         already fresh. The holder receives collateral worth the debt plus the
-    ///         liquidation penalty; the remainder returns to the borrower.
-    function liquidate(uint256 id, bytes[] calldata priceUpdate) external payable nonReentrant {
+    ///         The caller appends a RedStone payload for the collateral's feed to the
+    ///         calldata: prices signed by at least three of RedStone's primary production
+    ///         nodes, no older than MAX_PRICE_AGE. The median is used. The holder receives
+    ///         collateral worth the debt plus the liquidation penalty; the remainder
+    ///         returns to the borrower.
+    function liquidate(uint256 id) external nonReentrant {
         Loan storage l = _loans[id];
         if (l.status != LoanStatus.Active) revert NotActive();
         CollateralType storage c = _collateralTypes[l.collateralType];
-
-        uint256 fee;
-        if (priceUpdate.length != 0) {
-            fee = pyth.getUpdateFee(priceUpdate);
-            if (msg.value < fee) revert InsufficientFee(fee);
-            pyth.updatePriceFeeds{value: fee}(priceUpdate);
-        }
-        PythStructs.Price memory price = pyth.getPriceNoOlderThan(c.priceId, MAX_PRICE_AGE);
+        uint256 price = getOracleNumericValueFromTxMsg(c.feedId);
 
         (uint256 owed,) = _debt(l.principal, l.rateBps, l.startTime);
         uint256 collateral = l.collateral;
@@ -454,7 +452,15 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
         _payCollateral(kind, holder, seized - bounty);
         if (bounty != 0) _payCollateral(kind, msg.sender, bounty);
         if (returned != 0) _payCollateral(kind, l.borrower, returned);
-        if (msg.value > fee) _payNative(msg.sender, msg.value - fee);
+    }
+
+    /// @notice Called by the RedStone base with the signed packages' timestamp, in
+    ///         milliseconds. Prices older than MAX_PRICE_AGE are refused, and so are
+    ///         prices more than a minute ahead of the block clock.
+    function validateTimestamp(uint256 receivedTimestampMilliseconds) public view override {
+        uint256 signedAt = receivedTimestampMilliseconds / 1000;
+        if (signedAt > block.timestamp + MAX_CLOCK_SKEW) revert PriceFromFuture(signedAt);
+        if (block.timestamp > signedAt + MAX_PRICE_AGE) revert StalePrice(signedAt);
     }
 
     // ---------------------------------------------------------------------
@@ -619,36 +625,26 @@ contract CitrineExchange is ERC721, ReentrancyGuard {
     }
 
     /// @dev Power of ten that converts collateral units times price into asset units.
-    function _scale(PythStructs.Price memory price, uint8 collateralDecimals) private view returns (int256) {
-        if (price.price <= 0) revert BadPrice();
-        return int256(price.expo) + int256(uint256(assetDecimals)) - int256(uint256(collateralDecimals));
+    function _scale(uint256 price, uint8 collateralDecimals) private view returns (int256) {
+        if (price == 0) revert BadPrice();
+        return int256(uint256(assetDecimals)) - int256(uint256(collateralDecimals)) - int256(PRICE_DECIMALS);
     }
 
     /// @dev Value of `amount` collateral units, in loan-asset units.
-    function _collateralValue(uint256 amount, PythStructs.Price memory price, uint8 collateralDecimals)
-        private
-        view
-        returns (uint256)
-    {
+    function _collateralValue(uint256 amount, uint256 price, uint8 collateralDecimals) private view returns (uint256) {
         int256 exp = _scale(price, collateralDecimals);
-        uint256 p = uint256(uint64(price.price));
-        if (exp >= 0) return Math.mulDiv(amount, p * 10 ** uint256(exp), 1);
-        return Math.mulDiv(amount, p, 10 ** uint256(-exp));
+        if (exp >= 0) return Math.mulDiv(amount, price * 10 ** uint256(exp), 1);
+        return Math.mulDiv(amount, price, 10 ** uint256(-exp));
     }
 
     /// @dev Collateral units worth `value` loan-asset units.
-    function _toCollateral(uint256 value, PythStructs.Price memory price, uint8 collateralDecimals)
-        private
-        view
-        returns (uint256)
-    {
+    function _toCollateral(uint256 value, uint256 price, uint8 collateralDecimals) private view returns (uint256) {
         int256 exp = _scale(price, collateralDecimals);
-        uint256 p = uint256(uint64(price.price));
-        if (exp >= 0) return value / (p * 10 ** uint256(exp));
-        return Math.mulDiv(value, 10 ** uint256(-exp), p);
+        if (exp >= 0) return value / (price * 10 ** uint256(exp));
+        return Math.mulDiv(value, 10 ** uint256(-exp), price);
     }
 
-    function _ltvBps(uint256 owed, uint256 collateral, PythStructs.Price memory price, uint8 collateralDecimals)
+    function _ltvBps(uint256 owed, uint256 collateral, uint256 price, uint8 collateralDecimals)
         private
         view
         returns (uint256)

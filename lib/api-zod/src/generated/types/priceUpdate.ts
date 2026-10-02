@@ -8,8 +8,12 @@
 
 export interface PriceUpdate {
   symbol: string;
-  priceId: string;
+  feedId: string;
+  /** Median of the signed prices, which the contract will use */
   price: number;
   publishTime: Date;
-  updateData: string[];
+  /** RedStone nodes that signed this price */
+  signers: string[];
+  /** Hex RedStone payload to append to the liquidate calldata */
+  payload: string;
 }

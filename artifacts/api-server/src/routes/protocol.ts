@@ -4,7 +4,7 @@ import { deployment, MONAD_TESTNET, PROTOCOL } from "@workspace/contracts";
 import { GetPricesResponse, GetPriceUpdateQueryParams, GetPriceUpdateResponse, GetProtocolResponse } from "@workspace/api-zod";
 import { indexerStatus } from "../lib/indexer";
 import { badRequest, handler, HttpError, notFound, zodMessage } from "../lib/http";
-import { allQuotes, livePricesAvailable, PricesUnavailableError, signedUpdate } from "../lib/prices";
+import { allQuotes, livePricesAvailable, PricesUnavailableError, signedPrice } from "../lib/prices";
 
 const router: IRouter = Router();
 
@@ -17,7 +17,7 @@ router.get("/protocol", (_req, res) => {
       rpcUrl: MONAD_TESTNET.rpcUrl,
       explorerUrl: MONAD_TESTNET.explorerUrl,
       exchange: getAddress(deployment.exchange),
-      pyth: getAddress(deployment.pyth),
+      oracle: deployment.oracle,
       startBlock: deployment.startBlock,
       asset: deployment.asset,
       collaterals: deployment.collaterals,
@@ -53,9 +53,9 @@ router.get(
     const collateral = deployment.collaterals.find((c) => c.symbol.toLowerCase() === parsed.data.collateral.toLowerCase());
     if (!collateral) throw notFound("Unknown collateral.");
     try {
-      res.json(GetPriceUpdateResponse.parse(await signedUpdate(collateral)));
+      res.json(GetPriceUpdateResponse.parse(await signedPrice(collateral)));
     } catch (error) {
-      if (error instanceof PricesUnavailableError) throw new HttpError(503, "Live Pyth prices are unavailable right now.");
+      if (error instanceof PricesUnavailableError) throw new HttpError(503, "Live RedStone prices are unavailable right now.");
       throw error;
     }
   }),

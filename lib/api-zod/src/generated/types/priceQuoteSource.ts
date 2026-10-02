@@ -10,6 +10,5 @@ export type PriceQuoteSource = typeof PriceQuoteSource[keyof typeof PriceQuoteSo
 
 
 export const PriceQuoteSource = {
-  hermes: 'hermes',
-  onchain: 'onchain',
+  redstone: 'redstone',
 } as const;

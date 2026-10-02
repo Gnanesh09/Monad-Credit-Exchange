@@ -12,7 +12,8 @@ export interface CollateralInfo {
   symbol: string;
   name: string;
   decimals: number;
-  priceId: string;
+  /** RedStone data feed id, such as ETH */
+  feedId: string;
   feed: string;
   native: boolean;
   /** @nullable */

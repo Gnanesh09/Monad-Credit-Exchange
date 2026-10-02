@@ -8,6 +8,7 @@
 import type { AssetInfo } from './assetInfo';
 import type { CollateralInfo } from './collateralInfo';
 import type { IndexerStatus } from './indexerStatus';
+import type { OracleInfo } from './oracleInfo';
 import type { ProtocolParameters } from './protocolParameters';
 
 export interface Protocol {
@@ -17,12 +18,12 @@ export interface Protocol {
   rpcUrl: string;
   explorerUrl: string;
   exchange: string;
-  pyth: string;
+  oracle: OracleInfo;
   startBlock: number;
   asset: AssetInfo;
   collaterals: CollateralInfo[];
   parameters: ProtocolParameters;
   indexer: IndexerStatus;
-  /** True when fresh signed Pyth prices are available, which liquidation requires. */
+  /** True when fresh RedStone prices are available, which liquidation requires. */
   livePrices: boolean;
 }

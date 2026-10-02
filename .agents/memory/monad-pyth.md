@@ -1,12 +1,11 @@
 ---
 name: Monad oracles and gas
-description: Which price oracles work on Monad testnet without an API key, plus gas billing that affects keepers and deploy scripts.
+description: Which price oracles work on Monad testnet without an API key, why Citrine uses RedStone pull, RedStone licensing, and gas billing that affects keepers and deploy scripts.
 ---
-- Pyth Hermes returns 401 without an API key on every signed-update route (hermes.pyth.network, hermes-beta, pyth.dourolabs.app/hermes, benchmarks latest and by timestamp); only /v2/price_feeds metadata is public. Free accounts cannot get a key (user, 2026-10-02).
-- The onchain Pyth contract on Monad testnet (0x2880aB155794e7179c9eE2e38200202908C17B43) works but its stored prices are days old: getPriceUnsafe returns them, getPriceNoOlderThan reverts.
-  **Why:** liquidation needs a fresh price, so Pyth without a key means liquidations cannot run.
-- Keyless options checked 2026-10-02:
-  - RedStone pull: gateways oracle-gateway-1/-2.a.redstone.finance, /data-packages/latest/redstone-primary-prod, no key, ~10 s old, 5 signers, has MON, ETH, BTC, USDC. evm-connector and sdk are MIT.
-  - Chainlink push feeds are live on Monad testnet (ETH/USD, BTC/USD, USDC/USD; 8 decimals, 24 h heartbeat, 0.5% deviation) but there is no MON/USD. Addresses come from reference-data-directory.vercel.app/feeds-monad-testnet.json.
-  - RedStone push ("Bolt") testnet feeds revert in latestRoundData with InvalidLastUpdateDetails: unusable. Stork needs a key.
+- Citrine uses RedStone pull (`redstone-primary-prod`, 3 unique signers). Pyth was dropped because Hermes signed updates need an API key, which free accounts cannot get (user, 2026-10-02).
+  **Why:** liquidation needs a fresh signed price; RedStone gateways are keyless and publish MON, ETH and BTC.
+- RedStone licensing: package.json says MIT, but the npm packages (evm-connector, sdk, protocol) ship a BUSL-1.1 LICENSE and the core consumer contracts carry BUSL-1.1 headers; libs/ and mocks/ are MIT. BUSL allows non-production use only.
+  **How to apply:** keep the README attribution accurate; a mainnet launch needs RedStone's permission.
+- RedStone gotchas: pin 0.9.0 (evm-connector 1.0.0 on npm is broken). The gateway returns every feed (~400 KB gzipped) even when one is requested, so fetch signed packages only when needed and use api.redstone.finance/prices for display. `convertDataPackagesResponse(res, "hex")` returns hex without 0x.
+- Other keyless options checked 2026-10-02: Chainlink push feeds exist on Monad testnet (ETH, BTC, USDC; 24 h heartbeat) but there is no MON/USD. RedStone push ("Bolt") testnet feeds revert with InvalidLastUpdateDetails. Stork needs a key. The onchain Pyth contract on Monad testnet has days-old prices.
 - Monad charges for the gas limit, not gas used. Keep explicit gas limits tight (estimate plus ~15%).

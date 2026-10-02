@@ -18,12 +18,21 @@ export interface CollateralInfo {
   symbol: string;
   name: string;
   decimals: number;
-  /** Pyth price feed id. */
-  priceId: Hex;
+  /** RedStone data feed that prices the collateral in USD, such as "ETH". */
+  feedId: string;
+  /** Display name of the feed, such as "ETH/USD". */
   feed: string;
   native: boolean;
   /** Faucet drip in display units, or null for native MON. */
   drip: string | null;
+}
+
+export interface OracleInfo {
+  provider: "RedStone";
+  /** RedStone data service whose nodes the exchange trusts. */
+  dataServiceId: string;
+  /** Distinct trusted signers required for each price. */
+  uniqueSigners: number;
 }
 
 export interface CitrineDeployment {
@@ -33,7 +42,7 @@ export interface CitrineDeployment {
   deployedAt: string;
   /** First block to index from. */
   startBlock: number;
-  pyth: Address;
+  oracle: OracleInfo;
   exchange: Address;
   asset: AssetInfo;
   collaterals: CollateralInfo[];

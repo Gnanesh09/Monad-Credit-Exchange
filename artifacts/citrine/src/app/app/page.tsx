@@ -34,7 +34,7 @@ function Stats() {
   const big = [
     { label: "Outstanding credit", v: data?.outstandingPrincipal, f: (n: number) => formatUsd(n, true), sub: data ? `${data.activeLoans} active loans` : "" },
     { label: "7 day clearing rate", v: data?.averageRateBps ?? undefined, f: formatRate, sub: "principal weighted", accent: true },
-    { label: "Collateral locked", v: data?.collateralLockedUsd, f: (n: number) => formatUsd(n, true), sub: "valued by Pyth" },
+    { label: "Collateral locked", v: data?.collateralLockedUsd, f: (n: number) => formatUsd(n, true), sub: "valued by RedStone" },
     { label: "24h volume", v: data?.volume24h, f: (n: number) => formatUsd(n, true), sub: data ? `${formatUsd(data.secondaryVolume, true)} traded secondary` : "" },
   ];
   const small = data

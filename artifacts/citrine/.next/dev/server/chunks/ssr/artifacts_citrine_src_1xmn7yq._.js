@@ -76,7 +76,7 @@ function Stats() {
             label: "Collateral locked",
             v: data?.collateralLockedUsd,
             f: (n)=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$artifacts$2f$citrine$2f$src$2f$lib$2f$format$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["formatUsd"])(n, true),
-            sub: "valued by Pyth"
+            sub: "valued by RedStone"
         },
         {
             label: "24h volume",

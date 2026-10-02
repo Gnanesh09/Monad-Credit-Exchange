@@ -15,22 +15,12 @@ import { toast } from "sonner";
 import type { Abi, Address, Hash, Hex } from "viem";
 import { estimateContractGas } from "viem/actions";
 import type { Config } from "wagmi";
-import { deployment, faucetTokenAbi } from "@workspace/contracts";
+import { faucetTokenAbi } from "@workspace/contracts";
 import { getPriceUpdate } from "@workspace/api-client-react";
 import { formatRate } from "@/lib/format";
 import { monadTestnet } from "./config";
 import { asset, collateralByIndex, exchangeContract, explorerTx } from "./contracts";
 import { readableError } from "./errors";
-
-const pythFeeAbi = [
-  {
-    type: "function",
-    name: "getUpdateFee",
-    stateMutability: "view",
-    inputs: [{ name: "updateData", type: "bytes[]" }],
-    outputs: [{ name: "feeAmount", type: "uint256" }],
-  },
-] as const;
 
 // The contract calls below are assembled at runtime from several ABIs, so the strongly
 // typed wagmi signatures are widened once here.
@@ -44,6 +34,8 @@ interface ContractCall {
   functionName: string;
   args?: readonly unknown[];
   value?: bigint;
+  /** Appended to the calldata; liquidate() reads its signed RedStone price from here. */
+  dataSuffix?: Hex;
 }
 
 interface TxStep {
@@ -179,9 +171,14 @@ export function useCitrineActions() {
     [config],
   );
 
-  const exchangeStep = (title: string, functionName: string, args: readonly unknown[], value?: bigint): TxStep => ({
+  const exchangeStep = (
+    title: string,
+    functionName: string,
+    args: readonly unknown[],
+    extra: { value?: bigint; dataSuffix?: Hex } = {},
+  ): TxStep => ({
     title,
-    call: { address: exchangeContract.address, abi: exchangeContract.abi as Abi, functionName, args, value },
+    call: { address: exchangeContract.address, abi: exchangeContract.abi as Abi, functionName, args, ...extra },
   });
 
   const actions = useMemo(
@@ -204,7 +201,7 @@ export function useCitrineActions() {
               "Post request and lock collateral",
               "createRequest",
               [input.collateralIndex, input.collateralAmount, input.principal, input.duration, input.maxRateBps, input.auctionLength],
-              collateral.native ? input.collateralAmount : undefined,
+              { value: collateral.native ? input.collateralAmount : undefined },
             ),
           ];
         }),
@@ -258,18 +255,9 @@ export function useCitrineActions() {
 
       liquidate: (id: number, collateralSymbol: string) =>
         execute("Liquidate loan", async () => {
-          // Without a signed Hermes update, the contract can still use an onchain price that is fresh.
-          const update = await getPriceUpdate({ collateral: collateralSymbol }).catch(() => null);
-          if (!update) return [exchangeStep("Liquidate at the onchain Pyth price", "liquidate", [BigInt(id), []], 0n)];
-          const updateData = update.updateData as Hex[];
-          const fee = await readContract(config, {
-            address: deployment.pyth,
-            abi: pythFeeAbi,
-            functionName: "getUpdateFee",
-            args: [updateData],
-            chainId: monadTestnet.id,
-          });
-          return [exchangeStep("Liquidate with a fresh Pyth price", "liquidate", [BigInt(id), updateData], fee)];
+          // Fetched at the last moment: the contract accepts signed prices up to two minutes old.
+          const signed = await getPriceUpdate({ collateral: collateralSymbol });
+          return [exchangeStep("Liquidate with a signed RedStone price", "liquidate", [BigInt(id)], { dataSuffix: signed.payload as Hex })];
         }),
 
       claim: (token: Address, symbol: string) => execute(`Withdraw ${symbol}`, async () => [exchangeStep(`Withdraw ${symbol}`, "claim", [token])]),

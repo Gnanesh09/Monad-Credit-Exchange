@@ -24,12 +24,15 @@ const MESSAGES: Record<string, (args: readonly unknown[]) => string> = {
   PriceAboveMax: () => "The price changed. Review it and try again.",
   OwnListing: () => "You cannot buy your own listing.",
   BadPrice: () => "The oracle returned an invalid price.",
-  InsufficientFee: () => "The oracle update fee was not covered.",
   NothingToClaim: () => "There is nothing to claim.",
   FaucetCoolingDown: () => "You can use the faucet once an hour.",
   ERC20InsufficientBalance: () => "Your token balance is too low.",
   ERC20InsufficientAllowance: () => "The token approval is too low.",
-  StalePrice: () => "The oracle price is stale. A fresh price update is needed.",
+  StalePrice: () => "The signed price expired before the transaction landed. Try again.",
+  PriceFromFuture: () => "The signed price is ahead of the chain clock. Try again in a moment.",
+  CalldataMustHaveValidPayload: () => "The transaction is missing its signed RedStone price.",
+  InsufficientNumberOfUniqueSigners: () => "Not enough RedStone nodes signed this price. Try again.",
+  SignerNotAuthorised: () => "The price was signed by a node the exchange does not trust.",
 };
 
 /** Human readable message for a wallet, RPC or contract error. */

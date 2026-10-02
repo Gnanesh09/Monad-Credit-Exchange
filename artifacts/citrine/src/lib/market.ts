@@ -32,7 +32,7 @@ export function usePriceMap() {
   const map: Record<string, PriceQuote | undefined> = {};
   for (const c of collaterals) {
     map[c.symbol] =
-      q.data?.find((p) => p.priceId.toLowerCase() === c.priceId.toLowerCase()) ?? q.data?.find((p) => p.symbol === c.symbol);
+      q.data?.find((p) => p.feedId === c.feedId) ?? q.data?.find((p) => p.symbol === c.symbol);
   }
   return { ...q, map };
 }

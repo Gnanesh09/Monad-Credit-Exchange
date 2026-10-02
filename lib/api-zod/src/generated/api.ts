@@ -127,7 +127,11 @@ export const GetProtocolResponse = zod.object({
   "rpcUrl": zod.string(),
   "explorerUrl": zod.string(),
   "exchange": zod.string(),
-  "pyth": zod.string(),
+  "oracle": zod.object({
+  "provider": zod.enum(['RedStone']),
+  "dataServiceId": zod.string().describe('RedStone data service whose nodes the exchange trusts'),
+  "uniqueSigners": zod.number().int().describe('Distinct trusted signers required for each price')
+}),
   "startBlock": zod.number().int(),
   "asset": zod.object({
   "address": zod.string(),
@@ -142,7 +146,7 @@ export const GetProtocolResponse = zod.object({
   "symbol": zod.string(),
   "name": zod.string(),
   "decimals": zod.number().int(),
-  "priceId": zod.string(),
+  "feedId": zod.string().describe('RedStone data feed id, such as ETH'),
   "feed": zod.string(),
   "native": zod.boolean(),
   "drip": zod.string().nullable()
@@ -167,28 +171,27 @@ export const GetProtocolResponse = zod.object({
   "lagBlocks": zod.number().int(),
   "updatedAt": zod.coerce.date().nullable()
 }),
-  "livePrices": zod.boolean().describe('True when fresh signed Pyth prices are available, which liquidation requires.')
+  "livePrices": zod.boolean().describe('True when fresh RedStone prices are available, which liquidation requires.')
 })
 
 
 /**
- * @summary Collateral prices from Pyth
+ * @summary Collateral prices from RedStone
  */
 export const GetPricesResponseItem = zod.object({
   "symbol": zod.string(),
   "feed": zod.string(),
-  "priceId": zod.string(),
+  "feedId": zod.string(),
   "price": zod.number(),
-  "confidence": zod.number(),
   "publishTime": zod.coerce.date(),
-  "source": zod.enum(['hermes', 'onchain']),
+  "source": zod.enum(['redstone']),
   "stale": zod.boolean()
 })
 export const GetPricesResponse = zod.array(GetPricesResponseItem)
 
 
 /**
- * @summary Signed Pyth update for a collateral feed, used to liquidate with a fresh price
+ * @summary Signed RedStone price for a collateral feed, appended to the liquidate calldata
  */
 export const GetPriceUpdateQueryParams = zod.object({
   "collateral": zod.coerce.string().describe('Collateral symbol')
@@ -196,10 +199,11 @@ export const GetPriceUpdateQueryParams = zod.object({
 
 export const GetPriceUpdateResponse = zod.object({
   "symbol": zod.string(),
-  "priceId": zod.string(),
-  "price": zod.number(),
+  "feedId": zod.string(),
+  "price": zod.number().describe('Median of the signed prices, which the contract will use'),
   "publishTime": zod.coerce.date(),
-  "updateData": zod.array(zod.string())
+  "signers": zod.array(zod.string()).describe('RedStone nodes that signed this price'),
+  "payload": zod.string().describe('Hex RedStone payload to append to the liquidate calldata')
 })
 
 

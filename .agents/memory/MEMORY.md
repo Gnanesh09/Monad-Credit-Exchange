@@ -1,4 +1,4 @@
-- [Monad oracles and gas](monad-pyth.md) — Pyth needs a key users can't get; RedStone pull is keyless and has MON; Chainlink has no MON; Monad bills the gas limit.
+- [Monad oracles and gas](monad-pyth.md) — why RedStone pull (Pyth needs a key); RedStone is BUSL-1.1 despite MIT metadata; Monad bills the gas limit.
 - [Monad RPC and indexing](monad-rpc-indexing.md) — load-balanced RPC: index to finalized minus a margin, pin reads to that block; single writer via a MongoDB lease.
 - [Contracts toolchain](contracts-toolchain.md) — chai matchers cannot be chained after emit; deployer key doubles as the keeper key, so stop the API before scripts send.
 - [Web and proxy gotchas](web-gotchas.md) — Next 16 allowedDevOrigins, SSR Date.now() hydration, proxy rewrites XFF, Playwright setup for browser checks.

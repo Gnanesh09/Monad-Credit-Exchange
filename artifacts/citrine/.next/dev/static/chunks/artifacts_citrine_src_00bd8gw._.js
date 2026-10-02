@@ -1512,7 +1512,7 @@ function Positions() {
                                 ],
                                 [
                                     __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$lucide$2d$react$40$0$2e$545$2e$0_react$40$19$2e$1$2e$0$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$shield$2d$check$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__ShieldCheck$3e$__["ShieldCheck"],
-                                    "Liquidatable when debt reaches 85% of collateral value, priced by Pyth"
+                                    "Liquidatable when debt reaches 85% of collateral value, priced by RedStone"
                                 ],
                                 [
                                     __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$lucide$2d$react$40$0$2e$545$2e$0_react$40$19$2e$1$2e$0$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$clock$2d$3$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Clock3$3e$__["Clock3"],
@@ -1577,9 +1577,9 @@ function MonadSection() {
             body: "Bids, accepts and repayments confirm before you finish reading the toast. Short auctions are actually usable."
         },
         {
-            big: "Pyth",
+            big: "RedStone",
             label: "Oracle",
-            body: "Collateral is valued with Pyth price feeds. Liquidations pull a fresh signed price on the spot."
+            body: "Collateral is valued with RedStone feeds. A liquidation carries a price signed by three RedStone nodes, checked by the contract."
         },
         {
             big: "100%",
@@ -3799,7 +3799,7 @@ function usePriceMap() {
     });
     const map = {};
     for (const c of __TURBOPACK__imported__module__$5b$project$5d2f$artifacts$2f$citrine$2f$src$2f$lib$2f$web3$2f$contracts$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["collaterals"]){
-        map[c.symbol] = q.data?.find((p)=>p.priceId.toLowerCase() === c.priceId.toLowerCase()) ?? q.data?.find((p)=>p.symbol === c.symbol);
+        map[c.symbol] = q.data?.find((p)=>p.feedId === c.feedId) ?? q.data?.find((p)=>p.symbol === c.symbol);
     }
     return {
         ...q,

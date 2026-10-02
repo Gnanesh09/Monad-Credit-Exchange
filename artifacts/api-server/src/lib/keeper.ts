@@ -1,30 +1,21 @@
-import { encodeFunctionData, type Hash, type Hex } from "viem";
+import { concatHex, encodeFunctionData, type Hash, type Hex } from "viem";
 import { getCollections } from "@workspace/db";
-import { deployment, PROTOCOL } from "@workspace/contracts";
+import { PROTOCOL } from "@workspace/contracts";
 import { errorSummary, exchange, keeperAccount, publicClient, sleep, walletClient } from "./chain";
 import { indexerSynced } from "./indexer";
 import { logger } from "./logger";
 import { isLeader } from "./leader";
-import { freshQuote, signedUpdate } from "./prices";
+import { freshQuote, signedPrice } from "./prices";
 import { collateralOf, display, owedRaw, assetDecimals } from "./serialize";
 
 const TICK_MS = 10_000;
 const RETRY_AFTER_MS = 20_000;
 const BATCH = 10;
 
-const pythFeeAbi = [
-  {
-    type: "function",
-    name: "getUpdateFee",
-    stateMutability: "view",
-    inputs: [{ name: "updateData", type: "bytes[]" }],
-    outputs: [{ name: "feeAmount", type: "uint256" }],
-  },
-] as const;
-
+/** liquidate() reads a signed RedStone price from the end of its calldata, passed as `dataSuffix`. */
 type KeeperCall =
-  | { functionName: "settle" | "expireRequest" | "claimDefault"; args: readonly [bigint]; value?: undefined }
-  | { functionName: "liquidate"; args: readonly [bigint, readonly Hex[]]; value: bigint };
+  | { functionName: "settle" | "expireRequest" | "claimDefault"; args: readonly [bigint]; dataSuffix?: undefined }
+  | { functionName: "liquidate"; args: readonly [bigint]; dataSuffix: Hex };
 
 // The exchange calls are a small union; viem's per-function generics are widened once here.
 const simulate = publicClient.simulateContract as unknown as (params: object) => Promise<{ request: object }>;
@@ -35,22 +26,26 @@ const retryAt = new Map<string, number>();
 let running = false;
 let inflight: Promise<void> | null = null;
 
+const callKey = (functionName: KeeperCall["functionName"], id: bigint) => `${functionName}:${id}`;
+const coolingDown = (key: string) => (retryAt.get(key) ?? 0) > Date.now();
+
 async function send(call: KeeperCall): Promise<Hash | null> {
   if (!walletClient || !keeperAccount) return null;
   const id = call.args[0];
-  const key = `${call.functionName}:${id}`;
-  if ((retryAt.get(key) ?? 0) > Date.now()) return null;
+  const key = callKey(call.functionName, id);
+  if (coolingDown(key)) return null;
   const params = { ...exchange, ...call, account: keeperAccount };
   try {
     await simulate(params);
+    // Estimated on the full calldata, payload included: verifying signatures costs gas too.
     const gas = ((await estimate(params)) * 115n) / 100n;
+    const data = encode({ abi: exchange.abi, functionName: call.functionName, args: call.args });
     // Prepare and sign first, then check the lease right before the raw send. writeContract
     // would await nonce and fee lookups after any earlier check, and those can outlast the lease.
     const prepared = await walletClient.prepareTransactionRequest({
       account: keeperAccount,
       to: exchange.address,
-      data: encode({ abi: exchange.abi, functionName: call.functionName, args: call.args }),
-      value: call.value ?? 0n,
+      data: call.dataSuffix ? concatHex([data, call.dataSuffix]) : data,
       gas,
     });
     const serializedTransaction = await walletClient.signTransaction(prepared);
@@ -74,27 +69,15 @@ async function liquidations(nowMs: number): Promise<void> {
     const collateral = collateralOf(loan.collateralIndex);
     // Only fresh prices are actionable; the contract rejects anything older than MAX_PRICE_AGE.
     const quote = freshQuote(collateral.symbol);
-    if (!quote) continue;
+    if (!quote || coolingDown(callKey("liquidate", BigInt(loan._id)))) continue;
     const value = display(loan.collateralAmount, collateral.decimals) * quote.price;
     const owed = display(owedRaw(loan, nowMs), assetDecimals);
     // Contract checks with its own fresh price; leave a little headroom below the threshold.
     if (value <= 0 || (owed / value) * PROTOCOL.BPS < PROTOCOL.LIQUIDATION_LTV_BPS - 100) continue;
     try {
-      if (quote.source === "onchain") {
-        // This feed's onchain Pyth price is itself fresh, so the contract can use it as stored.
-        await send({ functionName: "liquidate", args: [BigInt(loan._id), []], value: 0n });
-        continue;
-      }
-      // A Hermes quote says nothing about the onchain price, so post its signed update with the call.
-      const update = await signedUpdate(collateral);
-      const updateData = update.updateData as Hex[];
-      const fee = await publicClient.readContract({
-        address: deployment.pyth,
-        abi: pythFeeAbi,
-        functionName: "getUpdateFee",
-        args: [updateData],
-      });
-      await send({ functionName: "liquidate", args: [BigInt(loan._id), updateData], value: fee });
+      // The contract verifies the signatures and decides with the median signed price.
+      const signed = await signedPrice(collateral);
+      await send({ functionName: "liquidate", args: [BigInt(loan._id)], dataSuffix: signed.payload });
     } catch (error) {
       logger.warn({ id: loan._id, err: errorSummary(error) }, "Liquidation check failed");
     }

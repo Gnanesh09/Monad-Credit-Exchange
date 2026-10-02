@@ -10,9 +10,8 @@ import type { PriceQuoteSource } from './priceQuoteSource';
 export interface PriceQuote {
   symbol: string;
   feed: string;
-  priceId: string;
+  feedId: string;
   price: number;
-  confidence: number;
   publishTime: Date;
   source: PriceQuoteSource;
   stale: boolean;

@@ -350,7 +350,7 @@ function Positions() {
           <ul className="mt-8 space-y-4 text-[15px]">
             {[
               [Layers, "Artwork and terms read straight from tokenURI on the exchange contract"],
-              [ShieldCheck, "Liquidatable when debt reaches 85% of collateral value, priced by Pyth"],
+              [ShieldCheck, "Liquidatable when debt reaches 85% of collateral value, priced by RedStone"],
               [Clock3, "If the borrower misses maturity plus grace, the holder claims the collateral"],
             ].map(([Icon, text], i) => {
               const I = Icon as typeof Layers;
@@ -371,7 +371,7 @@ function Positions() {
 function MonadSection() {
   const facts = [
     { big: "~0.4s", label: "Block time", body: "Bids, accepts and repayments confirm before you finish reading the toast. Short auctions are actually usable." },
-    { big: "Pyth", label: "Oracle", body: "Collateral is valued with Pyth price feeds. Liquidations pull a fresh signed price on the spot." },
+    { big: "RedStone", label: "Oracle", body: "Collateral is valued with RedStone feeds. A liquidation carries a price signed by three RedStone nodes, checked by the contract." },
     { big: "100%", label: "Onchain", body: "Escrow, auctions, positions and liquidations all live in one exchange contract you can read." },
   ];
   return (

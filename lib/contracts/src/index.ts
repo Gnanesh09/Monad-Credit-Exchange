@@ -1,6 +1,6 @@
 export { citrineExchangeAbi, faucetTokenAbi } from "./generated/abis";
 export { deployment } from "./deployments";
-export type { Address, AssetInfo, CitrineDeployment, CollateralInfo, Hex } from "./types";
+export type { Address, AssetInfo, CitrineDeployment, CollateralInfo, Hex, OracleInfo } from "./types";
 
 export const MONAD_TESTNET = {
   id: 10143,
@@ -8,13 +8,6 @@ export const MONAD_TESTNET = {
   nativeCurrency: { name: "Monad", symbol: "MON", decimals: 18 },
   rpcUrl: "https://testnet-rpc.monad.xyz",
   explorerUrl: "https://testnet.monadexplorer.com",
-} as const;
-
-/** Pyth USD price feeds used to value collateral. */
-export const PRICE_FEEDS = {
-  MON: "0x31491744e2dbf6df7fcf4ac0820d18a609b49076d45066d3568424e62f686cd1",
-  ETH: "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
-  BTC: "0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43",
 } as const;
 
 /** Mirrors the constants in CitrineExchange.sol. Times are in seconds. */

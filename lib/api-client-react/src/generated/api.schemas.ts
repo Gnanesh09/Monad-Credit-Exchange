@@ -72,7 +72,8 @@ export interface CollateralInfo {
   symbol: string;
   name: string;
   decimals: number;
-  priceId: string;
+  /** RedStone data feed id, such as ETH */
+  feedId: string;
   feed: string;
   native: boolean;
   /** @nullable */
@@ -102,6 +103,21 @@ export interface IndexerStatus {
   updatedAt: string | null;
 }
 
+export type OracleInfoProvider = typeof OracleInfoProvider[keyof typeof OracleInfoProvider];
+
+
+export const OracleInfoProvider = {
+  RedStone: 'RedStone',
+} as const;
+
+export interface OracleInfo {
+  provider: OracleInfoProvider;
+  /** RedStone data service whose nodes the exchange trusts */
+  dataServiceId: string;
+  /** Distinct trusted signers required for each price */
+  uniqueSigners: number;
+}
+
 export interface Protocol {
   deployed: boolean;
   chainId: number;
@@ -109,13 +125,13 @@ export interface Protocol {
   rpcUrl: string;
   explorerUrl: string;
   exchange: string;
-  pyth: string;
+  oracle: OracleInfo;
   startBlock: number;
   asset: AssetInfo;
   collaterals: CollateralInfo[];
   parameters: ProtocolParameters;
   indexer: IndexerStatus;
-  /** True when fresh signed Pyth prices are available, which liquidation requires. */
+  /** True when fresh RedStone prices are available, which liquidation requires. */
   livePrices: boolean;
 }
 
@@ -123,16 +139,14 @@ export type PriceQuoteSource = typeof PriceQuoteSource[keyof typeof PriceQuoteSo
 
 
 export const PriceQuoteSource = {
-  hermes: 'hermes',
-  onchain: 'onchain',
+  redstone: 'redstone',
 } as const;
 
 export interface PriceQuote {
   symbol: string;
   feed: string;
-  priceId: string;
+  feedId: string;
   price: number;
-  confidence: number;
   publishTime: string;
   source: PriceQuoteSource;
   stale: boolean;
@@ -140,10 +154,14 @@ export interface PriceQuote {
 
 export interface PriceUpdate {
   symbol: string;
-  priceId: string;
+  feedId: string;
+  /** Median of the signed prices, which the contract will use */
   price: number;
   publishTime: string;
-  updateData: string[];
+  /** RedStone nodes that signed this price */
+  signers: string[];
+  /** Hex RedStone payload to append to the liquidate calldata */
+  payload: string;
 }
 
 export interface MarketStats {

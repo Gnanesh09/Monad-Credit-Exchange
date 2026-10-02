@@ -1,8 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {MockPyth} from "@pythnetwork/pyth-sdk-solidity/MockPyth.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {AuthorisedMockSignersBase} from "@redstone-finance/evm-connector/contracts/mocks/AuthorisedMockSignersBase.sol";
 import {CitrineExchange} from "../CitrineExchange.sol";
+
+/// @dev The exchange with RedStone's mock signers (the default Hardhat accounts) in place of
+///      the production nodes, so tests can sign their own price payloads.
+contract CitrineExchangeHarness is CitrineExchange, AuthorisedMockSignersBase {
+    constructor(IERC20 asset_, CollateralInit[] memory collaterals) CitrineExchange(asset_, collaterals) {}
+
+    function getAuthorisedSignerIndex(address signer) public view override returns (uint8) {
+        return getAllMockAuthorised(signer);
+    }
+}
 
 /// @dev Borrower contract that can refuse native transfers, used to exercise deferred payouts.
 contract RejectingBorrower {
@@ -40,6 +51,3 @@ contract RejectingBorrower {
         require(accepting, "rejecting");
     }
 }
-
-/// @dev Keeps MockPyth in the compilation so tests can deploy it.
-abstract contract PythMockAnchor is MockPyth {}

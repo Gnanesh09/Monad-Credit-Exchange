@@ -40,6 +40,8 @@ export * from './loanStatusFilter';
 export * from './marketStats';
 export * from './newSession';
 export * from './notFoundResponse';
+export * from './oracleInfo';
+export * from './oracleInfoProvider';
 export * from './portfolio';
 export * from './portfolioSummary';
 export * from './priceQuote';

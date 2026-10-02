@@ -68,7 +68,12 @@ export default function LoanPage() {
   const l = q.data;
   const [price, setPrice] = useState("");
   const active = l?.status === "active";
-  const update = useGetPriceUpdate({ collateral: l?.collateralSymbol ?? "" }, { query: { queryKey: getGetPriceUpdateQueryKey({ collateral: l?.collateralSymbol ?? "" }), enabled: !!l && active && !!protocol.data?.livePrices, refetchInterval: 15_000, retry: false } });
+  // A signed price is only worth fetching once the display price says the loan is past the threshold.
+  const quote = l ? map[l.collateralSymbol] : undefined;
+  const pastThreshold =
+    !!l && active && !!quote && !quote.stale &&
+    liveOwed(l.principal, l.rateBps, l.startTime, now) >= (PROTOCOL.LIQUIDATION_LTV_BPS / PROTOCOL.BPS) * quote.price * l.collateralAmount;
+  const signed = useGetPriceUpdate({ collateral: l?.collateralSymbol ?? "" }, { query: { queryKey: getGetPriceUpdateQueryKey({ collateral: l?.collateralSymbol ?? "" }), enabled: pastThreshold && !!protocol.data?.livePrices, refetchInterval: 15_000, retry: false } });
 
   if (q.isLoading) return <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr]"><Skel className="h-[420px]" /><Skel className="h-[420px]" /></div>;
   if (!l) {
@@ -96,9 +101,9 @@ export default function LoanPage() {
   const overdue = active && now > matMs;
   const defaultable = active && now > defMs;
   const liquidatable = active && ltv !== null && ltv >= liqLtv;
-  // Liquidation needs a fresh price: a signed Hermes update, or an onchain Pyth price that is current.
-  const onchainFresh = !!p && p.source === "onchain" && !p.stale;
-  const canLiquidate = !!update.data || onchainFresh;
+  // Liquidation needs a RedStone price signed by enough trusted nodes; the wallet flow fetches a fresh one.
+  const canLiquidate = !!signed.data;
+  const priceAge = p ? Math.max(0, Math.round((now - new Date(p.publishTime).getTime()) / 1000)) : null;
   const priceBps = Math.round(Number(price) * 1e6);
 
   return (
@@ -153,7 +158,7 @@ export default function LoanPage() {
                 <KV k={`${l.collateralSymbol} price`} v={<span className={cn("num", p?.stale && "text-warning")}>{p ? formatUsd(p.price) : "—"}{p?.stale ? " · stale" : ""}</span>} />
                 <KV k="Liquidation price" v={<span className="num">{liq ? formatUsd(liq) : "—"}</span>} />
                 <KV k="Collateral value" v={<span className="num">{formatUsd(colValue)}</span>} />
-                <KV k="Price source" v={p ? `Pyth ${p.source === "hermes" ? "Hermes" : "onchain"}` : "—"} />
+                <KV k="Price source" v={priceAge !== null ? `RedStone · ${priceAge} s ago` : "—"} />
               </div>
             </Panel>
           )}
@@ -220,11 +225,11 @@ export default function LoanPage() {
                         Liquidate loan
                       </Btn>
                       <p className="text-xs text-muted-foreground">
-                        {update.data
-                          ? `Fresh Pyth price ready: ${formatUsd(update.data.price)}. Liquidators earn a ${formatRate(PROTOCOL.LIQUIDATOR_BOUNTY_BPS)} bounty.`
-                          : onchainFresh
-                            ? `The onchain Pyth price is current at ${formatUsd(p.price)}. Liquidators earn a ${formatRate(PROTOCOL.LIQUIDATOR_BOUNTY_BPS)} bounty.`
-                            : "No fresh Pyth price is available, so liquidation is paused."}
+                        {signed.data
+                          ? `${signed.data.signers.length} RedStone nodes signed ${formatUsd(signed.data.price)}. Liquidators earn a ${formatRate(PROTOCOL.LIQUIDATOR_BOUNTY_BPS)} bounty.`
+                          : signed.isFetching
+                            ? "Fetching a signed RedStone price…"
+                            : "No signed RedStone price is available, so liquidation is paused."}
                       </p>
                     </>
                   )}

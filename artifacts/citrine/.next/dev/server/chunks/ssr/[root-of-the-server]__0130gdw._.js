@@ -1894,8 +1894,6 @@ __turbopack_context__.s([
     ()=>LOAN_STATUSES,
     "MONAD_TESTNET",
     ()=>MONAD_TESTNET,
-    "PRICE_FEEDS",
-    ()=>PRICE_FEEDS,
     "PROTOCOL",
     ()=>PROTOCOL,
     "REQUEST_STATUSES",
@@ -1921,11 +1919,6 @@ const MONAD_TESTNET = {
     },
     rpcUrl: "https://testnet-rpc.monad.xyz",
     explorerUrl: "https://testnet.monadexplorer.com"
-};
-const PRICE_FEEDS = {
-    MON: "0x31491744e2dbf6df7fcf4ac0820d18a609b49076d45066d3568424e62f686cd1",
-    ETH: "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
-    BTC: "0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43"
 };
 const PROTOCOL = {
     BPS: 10_000,

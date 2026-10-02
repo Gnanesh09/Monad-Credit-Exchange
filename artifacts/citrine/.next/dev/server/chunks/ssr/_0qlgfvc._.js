@@ -2656,7 +2656,6 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$sonner$40$2$2e$0$2e$8_$40$types$2b$react$40$19$2e$3$2e$0_react$2d$dom$40$19$2e$1$2e$0_react$40$19$2e$1$2e$0_$5f$react$40$19$2e$1$2e$0$2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/.pnpm/sonner@2.0.8_@types+react@19.3.0_react-dom@19.1.0_react@19.1.0__react@19.1.0/node_modules/sonner/dist/index.mjs [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$viem$40$2$2e$57$2e$1_bufferutil$40$4$2e$1$2e$0_typescript$40$5$2e$9$2e$3_utf$2d$8$2d$validate$40$5$2e$0$2e$10_zod$40$3$2e$25$2e$76$2f$node_modules$2f$viem$2f$_esm$2f$actions$2f$public$2f$estimateContractGas$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/.pnpm/viem@2.57.1_bufferutil@4.1.0_typescript@5.9.3_utf-8-validate@5.0.10_zod@3.25.76/node_modules/viem/_esm/actions/public/estimateContractGas.js [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$contracts$2f$src$2f$index$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/lib/contracts/src/index.ts [app-ssr] (ecmascript) <locals>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$contracts$2f$src$2f$deployments$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/contracts/src/deployments.ts [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$contracts$2f$src$2f$generated$2f$abis$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/contracts/src/generated/abis.ts [app-ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2d$client$2d$react$2f$src$2f$index$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/lib/api-client-react/src/index.ts [app-ssr] (ecmascript) <locals>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2d$client$2d$react$2f$src$2f$generated$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/api-client-react/src/generated/api.ts [app-ssr] (ecmascript)");
@@ -2677,25 +2676,6 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$artifacts$2f$citrine$2f$src$
 ;
 ;
 ;
-const pythFeeAbi = [
-    {
-        type: "function",
-        name: "getUpdateFee",
-        stateMutability: "view",
-        inputs: [
-            {
-                name: "updateData",
-                type: "bytes[]"
-            }
-        ],
-        outputs: [
-            {
-                name: "feeAmount",
-                type: "uint256"
-            }
-        ]
-    }
-];
 // The contract calls below are assembled at runtime from several ABIs, so the strongly
 // typed wagmi signatures are widened once here.
 const simulate = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$wagmi$2b$core$40$2$2e$22$2e$1_$40$tanstack$2b$query$2d$core$40$5$2e$102$2e$8_$40$types$2b$react$40$19$2e$3$2e$0_react$40$19$2e$1$2e$0_typesc_a1bc8a7df071194d732d969c9dff1b26$2f$node_modules$2f40$wagmi$2f$core$2f$dist$2f$esm$2f$actions$2f$simulateContract$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["simulateContract"];
@@ -2855,14 +2835,14 @@ function useCitrineActions() {
     }, [
         config
     ]);
-    const exchangeStep = (title, functionName, args, value)=>({
+    const exchangeStep = (title, functionName, args, extra = {})=>({
             title,
             call: {
                 address: __TURBOPACK__imported__module__$5b$project$5d2f$artifacts$2f$citrine$2f$src$2f$lib$2f$web3$2f$contracts$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["exchangeContract"].address,
                 abi: __TURBOPACK__imported__module__$5b$project$5d2f$artifacts$2f$citrine$2f$src$2f$lib$2f$web3$2f$contracts$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["exchangeContract"].abi,
                 functionName,
                 args,
-                value
+                ...extra
             }
         });
     const actions = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$3$2e$8_$40$types$2b$node$40$25$2e$9$2e$6_react$2d$dom$40$19$2e$1$2e$0_react$40$19$2e$1$2e$0_$5f$react$40$19$2e$1$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useMemo"])(()=>({
@@ -2890,7 +2870,9 @@ function useCitrineActions() {
                             input.duration,
                             input.maxRateBps,
                             input.auctionLength
-                        ], collateral.native ? input.collateralAmount : undefined)
+                        ], {
+                            value: collateral.native ? input.collateralAmount : undefined
+                        })
                     ];
                 }),
             bid: (id, rateBps, principal)=>execute(`Bid ${(0, __TURBOPACK__imported__module__$5b$project$5d2f$artifacts$2f$citrine$2f$src$2f$lib$2f$format$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["formatRate"])(rateBps)} on request #${id}`, async (account)=>{
@@ -2974,31 +2956,16 @@ function useCitrineActions() {
                         ])
                     ]),
             liquidate: (id, collateralSymbol)=>execute("Liquidate loan", async ()=>{
-                    // Without a signed Hermes update, the contract can still use an onchain price that is fresh.
-                    const update = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2d$client$2d$react$2f$src$2f$generated$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["getPriceUpdate"])({
+                    // Fetched at the last moment: the contract accepts signed prices up to two minutes old.
+                    const signed = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2d$client$2d$react$2f$src$2f$generated$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["getPriceUpdate"])({
                         collateral: collateralSymbol
-                    }).catch(()=>null);
-                    if (!update) return [
-                        exchangeStep("Liquidate at the onchain Pyth price", "liquidate", [
-                            BigInt(id),
-                            []
-                        ], 0n)
-                    ];
-                    const updateData = update.updateData;
-                    const fee = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$wagmi$2b$core$40$2$2e$22$2e$1_$40$tanstack$2b$query$2d$core$40$5$2e$102$2e$8_$40$types$2b$react$40$19$2e$3$2e$0_react$40$19$2e$1$2e$0_typesc_a1bc8a7df071194d732d969c9dff1b26$2f$node_modules$2f40$wagmi$2f$core$2f$dist$2f$esm$2f$actions$2f$readContract$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["readContract"])(config, {
-                        address: __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$contracts$2f$src$2f$deployments$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["deployment"].pyth,
-                        abi: pythFeeAbi,
-                        functionName: "getUpdateFee",
-                        args: [
-                            updateData
-                        ],
-                        chainId: __TURBOPACK__imported__module__$5b$project$5d2f$artifacts$2f$citrine$2f$src$2f$lib$2f$web3$2f$config$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["monadTestnet"].id
                     });
                     return [
-                        exchangeStep("Liquidate with a fresh Pyth price", "liquidate", [
-                            BigInt(id),
-                            updateData
-                        ], fee)
+                        exchangeStep("Liquidate with a signed RedStone price", "liquidate", [
+                            BigInt(id)
+                        ], {
+                            dataSuffix: signed.payload
+                        })
                     ];
                 }),
             claim: (token, symbol)=>execute(`Withdraw ${symbol}`, async ()=>[
@@ -3135,12 +3102,15 @@ const MESSAGES = {
     PriceAboveMax: ()=>"The price changed. Review it and try again.",
     OwnListing: ()=>"You cannot buy your own listing.",
     BadPrice: ()=>"The oracle returned an invalid price.",
-    InsufficientFee: ()=>"The oracle update fee was not covered.",
     NothingToClaim: ()=>"There is nothing to claim.",
     FaucetCoolingDown: ()=>"You can use the faucet once an hour.",
     ERC20InsufficientBalance: ()=>"Your token balance is too low.",
     ERC20InsufficientAllowance: ()=>"The token approval is too low.",
-    StalePrice: ()=>"The oracle price is stale. A fresh price update is needed."
+    StalePrice: ()=>"The signed price expired before the transaction landed. Try again.",
+    PriceFromFuture: ()=>"The signed price is ahead of the chain clock. Try again in a moment.",
+    CalldataMustHaveValidPayload: ()=>"The transaction is missing its signed RedStone price.",
+    InsufficientNumberOfUniqueSigners: ()=>"Not enough RedStone nodes signed this price. Try again.",
+    SignerNotAuthorised: ()=>"The price was signed by a node the exchange does not trust."
 };
 function readableError(error) {
     if (error instanceof __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$viem$40$2$2e$57$2e$1_bufferutil$40$4$2e$1$2e$0_typescript$40$5$2e$9$2e$3_utf$2d$8$2d$validate$40$5$2e$0$2e$10_zod$40$3$2e$25$2e$76$2f$node_modules$2f$viem$2f$_esm$2f$errors$2f$base$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["BaseError"]) {
@@ -3304,12 +3274,16 @@ const deployment = {
     "deployed": true,
     "chainId": 10143,
     "deployer": "0xd8A99C1370Dd10BB8d91D93C78c78260352ca18f",
-    "deployedAt": "2026-10-01T19:35:07.267Z",
-    "startBlock": 67341995,
-    "pyth": "0x2880aB155794e7179c9eE2e38200202908C17B43",
-    "exchange": "0x13fF594bDe49d0c15d957770D20B117C12B8B008",
+    "deployedAt": "2026-10-02T05:49:14.745Z",
+    "startBlock": 67463972,
+    "oracle": {
+        "provider": "RedStone",
+        "dataServiceId": "redstone-primary-prod",
+        "uniqueSigners": 3
+    },
+    "exchange": "0x3a4eBbA0b4944661C1428D84A37730b7a4119569",
     "asset": {
-        "address": "0x4ea7743b9D44ed04273293C34ccED14dD70e52f7",
+        "address": "0x4559De5D1052f5d95635355273839BB42BB4d2D6",
         "name": "Test USD Coin",
         "symbol": "tUSDC",
         "decimals": 6,
@@ -3322,39 +3296,39 @@ const deployment = {
             "symbol": "MON",
             "name": "Monad",
             "decimals": 18,
-            "priceId": "0x31491744e2dbf6df7fcf4ac0820d18a609b49076d45066d3568424e62f686cd1",
+            "feedId": "MON",
             "feed": "MON/USD",
             "native": true,
             "drip": null
         },
         {
             "index": 1,
-            "token": "0xC58f71ea5030C8D01B1c343aE40430087B05e9a2",
+            "token": "0xf00735aaf54fF0Aeed45dFdbA18D57D38840aAb3",
             "symbol": "tWETH",
             "name": "Test Wrapped Ether",
             "decimals": 18,
-            "priceId": "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
+            "feedId": "ETH",
             "feed": "ETH/USD",
             "native": false,
             "drip": "5"
         },
         {
             "index": 2,
-            "token": "0x470290C58748e56835362052387F9d94EB17f1fd",
+            "token": "0x9FD4372692B873B94088c9Ac831cDC27769744b6",
             "symbol": "tWBTC",
             "name": "Test Wrapped Bitcoin",
             "decimals": 8,
-            "priceId": "0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43",
+            "feedId": "BTC",
             "feed": "BTC/USD",
             "native": false,
             "drip": "0.25"
         }
     ],
     "transactions": {
-        "tUSDC": "0x8ed4a9efdcdca0d663d7868fe10c5e4f7378221d5d74cb66823d9903ff65498c",
-        "tWETH": "0xda84dac802bea9ad728a97c89bb0e5f5290eb24eaf946d14084b3a7da1512831",
-        "tWBTC": "0xebcb1ed47c376b4ec653d3db7206409b683769fd4cf3728549efd480b77a5613",
-        "CitrineExchange": "0x58f161e8c51107d0ace991bfd4d5ab5ad69d8404f45780d5b6cfdb186ec850ba"
+        "tUSDC": "0x335966f6fd2aab64269245e8eda0ac9fa5b22a4d90b333b4fc1028e05199c93b",
+        "tWETH": "0xc08b84388cd978f77af002d23ad9ee8253bfbfe3ced89ca925460e052eba95c3",
+        "tWBTC": "0x5b89b909d8ac8fbbf30c5fac6b2bf055200d1cdcd7d06b98f443e3e90b7a2ede",
+        "CitrineExchange": "0xd49c69615d4dcd00aab334cade66f2b2f9099e3fa92275a470acfa5f4b7865a9"
     }
 };
 }),
@@ -3377,11 +3351,6 @@ const citrineExchangeAbi = [
                 "type": "address"
             },
             {
-                "internalType": "contract IPyth",
-                "name": "pyth_",
-                "type": "address"
-            },
-            {
                 "components": [
                     {
                         "internalType": "address",
@@ -3390,7 +3359,7 @@ const citrineExchangeAbi = [
                     },
                     {
                         "internalType": "bytes32",
-                        "name": "priceId",
+                        "name": "feedId",
                         "type": "bytes32"
                     }
                 ],
@@ -3421,6 +3390,36 @@ const citrineExchangeAbi = [
     {
         "inputs": [],
         "name": "BadPrice",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "CalldataMustHaveValidPayload",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "CalldataOverOrUnderFlow",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "CanNotPickMedianOfEmptyArray",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "DataPackageTimestampMustNotBeZero",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "DataPackageTimestampsMustBeEqual",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "DataTimestampCannotBeZero",
         "type": "error"
     },
     {
@@ -3528,6 +3527,21 @@ const citrineExchangeAbi = [
     },
     {
         "inputs": [],
+        "name": "EachSignerMustProvideTheSameValue",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "EmptyCalldataPointersArr",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "GetDataServiceIdNotImplemented",
+        "type": "error"
+    },
+    {
+        "inputs": [],
         "name": "HasBids",
         "type": "error"
     },
@@ -3543,14 +3557,24 @@ const citrineExchangeAbi = [
         "type": "error"
     },
     {
+        "inputs": [],
+        "name": "IncorrectUnsignedMetadataSize",
+        "type": "error"
+    },
+    {
         "inputs": [
             {
                 "internalType": "uint256",
-                "name": "required",
+                "name": "receivedSignersCount",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "requiredSignersCount",
                 "type": "uint256"
             }
         ],
-        "name": "InsufficientFee",
+        "name": "InsufficientNumberOfUniqueSigners",
         "type": "error"
     },
     {
@@ -3561,6 +3585,11 @@ const citrineExchangeAbi = [
     {
         "inputs": [],
         "name": "InvalidAuctionLength",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "InvalidCalldataPointer",
         "type": "error"
     },
     {
@@ -3576,6 +3605,17 @@ const citrineExchangeAbi = [
     {
         "inputs": [],
         "name": "InvalidRate",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "bytes32",
+                "name": "signedHash",
+                "type": "bytes32"
+            }
+        ],
+        "name": "InvalidSignature",
         "type": "error"
     },
     {
@@ -3649,11 +3689,27 @@ const citrineExchangeAbi = [
         "inputs": [
             {
                 "internalType": "uint256",
+                "name": "signedAt",
+                "type": "uint256"
+            }
+        ],
+        "name": "PriceFromFuture",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
                 "name": "maxAllowedBps",
                 "type": "uint256"
             }
         ],
         "name": "RateTooHigh",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "RedstonePayloadMustHaveAtLeastOneDataPackage",
         "type": "error"
     },
     {
@@ -3691,6 +3747,44 @@ const citrineExchangeAbi = [
     {
         "inputs": [],
         "name": "SelfBid",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "receivedSigner",
+                "type": "address"
+            }
+        ],
+        "name": "SignerNotAuthorised",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "signedAt",
+                "type": "uint256"
+            }
+        ],
+        "name": "StalePrice",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "TimestampsMustBeEqual",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "valueByteSize",
+                "type": "uint256"
+            }
+        ],
+        "name": "TooLargeValueByteSize",
         "type": "error"
     },
     {
@@ -4391,6 +4485,25 @@ const citrineExchangeAbi = [
     {
         "inputs": [
             {
+                "internalType": "uint256[]",
+                "name": "values",
+                "type": "uint256[]"
+            }
+        ],
+        "name": "aggregateValues",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
                 "internalType": "address",
                 "name": "to",
                 "type": "address"
@@ -4581,7 +4694,7 @@ const citrineExchangeAbi = [
                     },
                     {
                         "internalType": "bytes32",
-                        "name": "priceId",
+                        "name": "feedId",
                         "type": "bytes32"
                     },
                     {
@@ -4699,6 +4812,19 @@ const citrineExchangeAbi = [
         "type": "function"
     },
     {
+        "inputs": [],
+        "name": "extractTimestampsAndAssertAllAreEqual",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "extractedTimestamp",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "pure",
+        "type": "function"
+    },
+    {
         "inputs": [
             {
                 "internalType": "uint256",
@@ -4712,6 +4838,38 @@ const citrineExchangeAbi = [
                 "internalType": "address",
                 "name": "",
                 "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "signerAddress",
+                "type": "address"
+            }
+        ],
+        "name": "getAuthorisedSignerIndex",
+        "outputs": [
+            {
+                "internalType": "uint8",
+                "name": "",
+                "type": "uint8"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getDataServiceId",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
             }
         ],
         "stateMutability": "view",
@@ -4901,6 +5059,19 @@ const citrineExchangeAbi = [
         "type": "function"
     },
     {
+        "inputs": [],
+        "name": "getUniqueSignersThreshold",
+        "outputs": [
+            {
+                "internalType": "uint8",
+                "name": "",
+                "type": "uint8"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
         "inputs": [
             {
                 "internalType": "uint256",
@@ -4949,16 +5120,11 @@ const citrineExchangeAbi = [
                 "internalType": "uint256",
                 "name": "id",
                 "type": "uint256"
-            },
-            {
-                "internalType": "bytes[]",
-                "name": "priceUpdate",
-                "type": "bytes[]"
             }
         ],
         "name": "liquidate",
         "outputs": [],
-        "stateMutability": "payable",
+        "stateMutability": "nonpayable",
         "type": "function"
     },
     {
@@ -5030,19 +5196,6 @@ const citrineExchangeAbi = [
         "outputs": [
             {
                 "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "pyth",
-        "outputs": [
-            {
-                "internalType": "contract IPyth",
                 "name": "",
                 "type": "address"
             }
@@ -5246,6 +5399,19 @@ const citrineExchangeAbi = [
         "name": "transferFrom",
         "outputs": [],
         "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "receivedTimestampMilliseconds",
+                "type": "uint256"
+            }
+        ],
+        "name": "validateTimestamp",
+        "outputs": [],
+        "stateMutability": "view",
         "type": "function"
     }
 ];

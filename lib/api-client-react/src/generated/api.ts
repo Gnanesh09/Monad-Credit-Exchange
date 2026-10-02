@@ -818,7 +818,7 @@ export const getGetPricesUrl = () => {
 }
 
 /**
- * @summary Collateral prices from Pyth
+ * @summary Collateral prices from RedStone
  */
 export const getPrices = async ( options?: Parameters<typeof customFetch>[1]): Promise<PriceQuote[]> => {
 
@@ -865,7 +865,7 @@ export type GetPricesQueryError = ErrorType<unknown>
 
 
 /**
- * @summary Collateral prices from Pyth
+ * @summary Collateral prices from RedStone
  */
 
 export function useGetPrices<TData = Awaited<ReturnType<typeof getPrices>>, TError = ErrorType<unknown>>(
@@ -902,7 +902,7 @@ export const getGetPriceUpdateUrl = (params: GetPriceUpdateParams,) => {
 }
 
 /**
- * @summary Signed Pyth update for a collateral feed, used to liquidate with a fresh price
+ * @summary Signed RedStone price for a collateral feed, appended to the liquidate calldata
  */
 export const getPriceUpdate = async (params: GetPriceUpdateParams, options?: Parameters<typeof customFetch>[1]): Promise<PriceUpdate> => {
 
@@ -949,7 +949,7 @@ export type GetPriceUpdateQueryError = ErrorType<NotFoundResponse | ErrorRespons
 
 
 /**
- * @summary Signed Pyth update for a collateral feed, used to liquidate with a fresh price
+ * @summary Signed RedStone price for a collateral feed, appended to the liquidate calldata
  */
 
 export function useGetPriceUpdate<TData = Awaited<ReturnType<typeof getPriceUpdate>>, TError = ErrorType<NotFoundResponse | ErrorResponse>>(

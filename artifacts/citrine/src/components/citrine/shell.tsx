@@ -69,7 +69,7 @@ function StatusLine() {
           {lag !== undefined && lag > 20 ? ` · ${lag} behind` : " · in sync"}
         </div>
       )}
-      {protocol.data && !protocol.data.livePrices && <div className="text-warning">Live Pyth prices unavailable</div>}
+      {protocol.data && !protocol.data.livePrices && <div className="text-warning">Live RedStone prices unavailable</div>}
     </div>
   );
 }
