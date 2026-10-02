@@ -7,8 +7,16 @@
  */
 
 export interface UsernameCheck {
+  /** The name as checked, or the stored spelling when a guest already uses it. */
   username: string;
   available: boolean;
   /** @nullable */
   reason: string | null;
+  /** True when a guest already uses this name and can be resumed. */
+  exists: boolean;
+  /**
+     * The wallet linked to that guest. Resuming it needs a signature from this wallet.
+     * @nullable
+     */
+  wallet: string | null;
 }

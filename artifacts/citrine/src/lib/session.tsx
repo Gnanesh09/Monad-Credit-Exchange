@@ -8,6 +8,7 @@ import {
   endSession,
   getGetMeQueryKey,
   linkWallet as linkWalletRequest,
+  resumeSession,
   setAuthTokenGetter,
   unlinkWallet as unlinkWalletRequest,
   useGetMe,
@@ -39,11 +40,21 @@ export function walletLinkMessage(username: string, address: string, issuedAt: s
   return ["Citrine wallet link", `Guest: @${username}`, `Wallet: ${address}`, `Issued: ${issuedAt}`].join("\n");
 }
 
+/** The exact message the API expects when entering as a guest that has a linked wallet. */
+export function guestSignInMessage(username: string, address: string, issuedAt: string): string {
+  return ["Citrine guest sign-in", `Guest: @${username}`, `Wallet: ${address}`, `Issued: ${issuedAt}`].join("\n");
+}
+
 interface SessionContextValue {
   /** False until the stored session has been checked. */
   ready: boolean;
   user: GuestUser | null;
   enter: (username: string) => Promise<GuestUser>;
+  /**
+   * Opens a session for a guest that already exists. Pass the guest's linked wallet, if it has
+   * one; the connected wallet must be that wallet and signs a sign-in message.
+   */
+  resume: (username: string, linkedWallet: string | null) => Promise<GuestUser>;
   signOut: () => Promise<void>;
   /** Signs a message with the connected wallet and links it to the guest. */
   linkWallet: () => Promise<GuestUser>;
@@ -88,6 +99,25 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     [queryClient],
   );
 
+  const resume = useCallback(
+    async (username: string, linkedWallet: string | null) => {
+      let proof = {};
+      if (linkedWallet) {
+        if (!address) throw new Error("Connect the wallet linked to this guest first.");
+        if (address.toLowerCase() !== linkedWallet.toLowerCase()) throw new Error("Switch to the wallet linked to this guest.");
+        const message = guestSignInMessage(username, address, new Date().toISOString());
+        const signature = await signMessageAsync({ message });
+        proof = { address, message, signature };
+      }
+      const session = await resumeSession({ username, ...proof });
+      storeToken(session.token);
+      setToken(session.token);
+      queryClient.setQueryData(getGetMeQueryKey(), session.user);
+      return session.user;
+    },
+    [address, signMessageAsync, queryClient],
+  );
+
   const signOut = useCallback(async () => {
     try {
       if (currentToken) await endSession();
@@ -115,8 +145,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [queryClient]);
 
   const value = useMemo<SessionContextValue>(
-    () => ({ ready, user, enter, signOut, linkWallet, unlinkWallet }),
-    [ready, user, enter, signOut, linkWallet, unlinkWallet],
+    () => ({ ready, user, enter, resume, signOut, linkWallet, unlinkWallet }),
+    [ready, user, enter, resume, signOut, linkWallet, unlinkWallet],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

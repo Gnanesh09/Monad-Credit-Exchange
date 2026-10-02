@@ -219,6 +219,8 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
 __turbopack_context__.s([
     "SessionProvider",
     ()=>SessionProvider,
+    "guestSignInMessage",
+    ()=>guestSignInMessage,
     "useSession",
     ()=>useSession,
     "walletLinkMessage",
@@ -260,6 +262,14 @@ function storeToken(token) {
 function walletLinkMessage(username, address, issuedAt) {
     return [
         "Citrine wallet link",
+        `Guest: @${username}`,
+        `Wallet: ${address}`,
+        `Issued: ${issuedAt}`
+    ].join("\n");
+}
+function guestSignInMessage(username, address, issuedAt) {
+    return [
+        "Citrine guest sign-in",
         `Guest: @${username}`,
         `Wallet: ${address}`,
         `Issued: ${issuedAt}`
@@ -316,6 +326,36 @@ function SessionProvider({ children }) {
     }["SessionProvider.useCallback[enter]"], [
         queryClient
     ]);
+    const resume = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$3$2e$8_$40$types$2b$node$40$25$2e$9$2e$6_react$2d$dom$40$19$2e$1$2e$0_react$40$19$2e$1$2e$0_$5f$react$40$19$2e$1$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "SessionProvider.useCallback[resume]": async (username, linkedWallet)=>{
+            let proof = {};
+            if (linkedWallet) {
+                if (!address) throw new Error("Connect the wallet linked to this guest first.");
+                if (address.toLowerCase() !== linkedWallet.toLowerCase()) throw new Error("Switch to the wallet linked to this guest.");
+                const message = guestSignInMessage(username, address, new Date().toISOString());
+                const signature = await signMessageAsync({
+                    message
+                });
+                proof = {
+                    address,
+                    message,
+                    signature
+                };
+            }
+            const session = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2d$client$2d$react$2f$src$2f$generated$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["resumeSession"])({
+                username,
+                ...proof
+            });
+            storeToken(session.token);
+            setToken(session.token);
+            queryClient.setQueryData((0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2d$client$2d$react$2f$src$2f$generated$2f$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getGetMeQueryKey"])(), session.user);
+            return session.user;
+        }
+    }["SessionProvider.useCallback[resume]"], [
+        address,
+        signMessageAsync,
+        queryClient
+    ]);
     const signOut = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$3$2e$8_$40$types$2b$node$40$25$2e$9$2e$6_react$2d$dom$40$19$2e$1$2e$0_react$40$19$2e$1$2e$0_$5f$react$40$19$2e$1$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
         "SessionProvider.useCallback[signOut]": async ()=>{
             try {
@@ -367,6 +407,7 @@ function SessionProvider({ children }) {
                 ready,
                 user,
                 enter,
+                resume,
                 signOut,
                 linkWallet,
                 unlinkWallet
@@ -375,6 +416,7 @@ function SessionProvider({ children }) {
         ready,
         user,
         enter,
+        resume,
         signOut,
         linkWallet,
         unlinkWallet
@@ -384,11 +426,11 @@ function SessionProvider({ children }) {
         children: children
     }, void 0, false, {
         fileName: "[project]/artifacts/citrine/src/lib/session.tsx",
-        lineNumber: 122,
+        lineNumber: 152,
         columnNumber: 10
     }, this);
 }
-_s(SessionProvider, "8rVIjSEs76u3VenvT0xMkGIZC0o=", false, function() {
+_s(SessionProvider, "2zTbXk3efUBUOg7Wi5T+k565bDI=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$QueryClientProvider$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQueryClient"],
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$wagmi$40$2$2e$19$2e$5_$40$tanstack$2b$query$2d$core$40$5$2e$102$2e$8_$40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0_$5f40$_afdd43a19c2d5d0fbf2fadba44364263$2f$node_modules$2f$wagmi$2f$dist$2f$esm$2f$hooks$2f$useAccount$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useAccount"],
@@ -995,6 +1037,12 @@ __turbopack_context__.s([
     ()=>getRateCurve,
     "getRequest",
     ()=>getRequest,
+    "getResumeSessionMutationKey",
+    ()=>getResumeSessionMutationKey,
+    "getResumeSessionMutationOptions",
+    ()=>getResumeSessionMutationOptions,
+    "getResumeSessionUrl",
+    ()=>getResumeSessionUrl,
     "getUnlinkWalletMutationKey",
     ()=>getUnlinkWalletMutationKey,
     "getUnlinkWalletMutationOptions",
@@ -1015,6 +1063,8 @@ __turbopack_context__.s([
     ()=>listRates,
     "listRequests",
     ()=>listRequests,
+    "resumeSession",
+    ()=>resumeSession,
     "unlinkWallet",
     ()=>unlinkWallet,
     "useCheckUsername",
@@ -1057,6 +1107,8 @@ __turbopack_context__.s([
     ()=>useListRates,
     "useListRequests",
     ()=>useListRequests,
+    "useResumeSession",
+    ()=>useResumeSession,
     "useUnlinkWallet",
     ()=>useUnlinkWallet
 ]);
@@ -1069,7 +1121,7 @@ __turbopack_context__.s([
  */ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useMutation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/.pnpm/@tanstack+react-query@5.102.8_react@19.1.0/node_modules/@tanstack/react-query/build/modern/useMutation.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/.pnpm/@tanstack+react-query@5.102.8_react@19.1.0/node_modules/@tanstack/react-query/build/modern/useQuery.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2d$client$2d$react$2f$src$2f$custom$2d$fetch$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/api-client-react/src/custom-fetch.ts [app-client] (ecmascript)");
-var _s = __turbopack_context__.k.signature(), _s1 = __turbopack_context__.k.signature(), _s2 = __turbopack_context__.k.signature(), _s3 = __turbopack_context__.k.signature(), _s4 = __turbopack_context__.k.signature(), _s5 = __turbopack_context__.k.signature(), _s6 = __turbopack_context__.k.signature(), _s7 = __turbopack_context__.k.signature(), _s8 = __turbopack_context__.k.signature(), _s9 = __turbopack_context__.k.signature(), _s10 = __turbopack_context__.k.signature(), _s11 = __turbopack_context__.k.signature(), _s12 = __turbopack_context__.k.signature(), _s13 = __turbopack_context__.k.signature(), _s14 = __turbopack_context__.k.signature(), _s15 = __turbopack_context__.k.signature(), _s16 = __turbopack_context__.k.signature(), _s17 = __turbopack_context__.k.signature(), _s18 = __turbopack_context__.k.signature(), _s19 = __turbopack_context__.k.signature(), _s20 = __turbopack_context__.k.signature();
+var _s = __turbopack_context__.k.signature(), _s1 = __turbopack_context__.k.signature(), _s2 = __turbopack_context__.k.signature(), _s3 = __turbopack_context__.k.signature(), _s4 = __turbopack_context__.k.signature(), _s5 = __turbopack_context__.k.signature(), _s6 = __turbopack_context__.k.signature(), _s7 = __turbopack_context__.k.signature(), _s8 = __turbopack_context__.k.signature(), _s9 = __turbopack_context__.k.signature(), _s10 = __turbopack_context__.k.signature(), _s11 = __turbopack_context__.k.signature(), _s12 = __turbopack_context__.k.signature(), _s13 = __turbopack_context__.k.signature(), _s14 = __turbopack_context__.k.signature(), _s15 = __turbopack_context__.k.signature(), _s16 = __turbopack_context__.k.signature(), _s17 = __turbopack_context__.k.signature(), _s18 = __turbopack_context__.k.signature(), _s19 = __turbopack_context__.k.signature(), _s20 = __turbopack_context__.k.signature(), _s21 = __turbopack_context__.k.signature();
 ;
 ;
 const withQueryKey = (query, queryKey)=>{
@@ -1278,6 +1330,67 @@ _s3(useEndSession, "wwwtpB20p0aLiHIvSy5P98MwIUg=", false, function() {
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useMutation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMutation"]
     ];
 });
+const getResumeSessionUrl = ()=>{
+    return `/api/session/resume`;
+};
+const resumeSession = async (resumeSessionBody, options)=>{
+    const getHeaders = (h)=>{
+        if (!h) return {};
+        if (h instanceof Headers) return Object.fromEntries(h.entries());
+        if (Symbol.iterator in h) {
+            return Object.fromEntries(Array.from(h, (entry)=>Array.from(entry)));
+        }
+        const headers = {};
+        for (const [name, value] of Object.entries(h)){
+            if (value !== undefined) headers[name] = value;
+        }
+        return headers;
+    };
+    return (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2d$client$2d$react$2f$src$2f$custom$2d$fetch$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["customFetch"])(getResumeSessionUrl(), {
+        ...options,
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...getHeaders(options?.headers)
+        },
+        body: JSON.stringify(resumeSessionBody)
+    });
+};
+const getResumeSessionMutationKey = ()=>[
+        'resumeSession'
+    ];
+const getResumeSessionMutationOptions = (options)=>{
+    const mutationKey = getResumeSessionMutationKey();
+    const { mutation: mutationOptions, request: requestOptions } = options ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ? options : {
+        ...options,
+        mutation: {
+            ...options.mutation,
+            mutationKey
+        }
+    } : {
+        mutation: {
+            mutationKey
+        },
+        request: undefined
+    };
+    const mutationFn = (props)=>{
+        const { data } = props ?? {};
+        return resumeSession(data, requestOptions);
+    };
+    return {
+        mutationFn,
+        ...mutationOptions
+    };
+};
+const useResumeSession = (options)=>{
+    _s4();
+    return (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useMutation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMutation"])(getResumeSessionMutationOptions(options));
+};
+_s4(useResumeSession, "wwwtpB20p0aLiHIvSy5P98MwIUg=", false, function() {
+    return [
+        __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useMutation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMutation"]
+    ];
+});
 const getGetMeUrl = ()=>{
     return `/api/session/me`;
 };
@@ -1306,12 +1419,12 @@ const getGetMeQueryOptions = (options)=>{
     };
 };
 function useGetMe(options) {
-    _s4();
+    _s5();
     const queryOptions = getGetMeQueryOptions(options);
     const query = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"])(queryOptions);
     return withQueryKey(query, queryOptions.queryKey);
 }
-_s4(useGetMe, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
+_s5(useGetMe, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"]
     ];
@@ -1369,10 +1482,10 @@ const getLinkWalletMutationOptions = (options)=>{
     };
 };
 const useLinkWallet = (options)=>{
-    _s5();
+    _s6();
     return (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useMutation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMutation"])(getLinkWalletMutationOptions(options));
 };
-_s5(useLinkWallet, "wwwtpB20p0aLiHIvSy5P98MwIUg=", false, function() {
+_s6(useLinkWallet, "wwwtpB20p0aLiHIvSy5P98MwIUg=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useMutation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMutation"]
     ];
@@ -1412,10 +1525,10 @@ const getUnlinkWalletMutationOptions = (options)=>{
     };
 };
 const useUnlinkWallet = (options)=>{
-    _s6();
+    _s7();
     return (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useMutation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMutation"])(getUnlinkWalletMutationOptions(options));
 };
-_s6(useUnlinkWallet, "wwwtpB20p0aLiHIvSy5P98MwIUg=", false, function() {
+_s7(useUnlinkWallet, "wwwtpB20p0aLiHIvSy5P98MwIUg=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useMutation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMutation"]
     ];
@@ -1448,12 +1561,12 @@ const getGetProtocolQueryOptions = (options)=>{
     };
 };
 function useGetProtocol(options) {
-    _s7();
+    _s8();
     const queryOptions = getGetProtocolQueryOptions(options);
     const query = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"])(queryOptions);
     return withQueryKey(query, queryOptions.queryKey);
 }
-_s7(useGetProtocol, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
+_s8(useGetProtocol, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"]
     ];
@@ -1486,12 +1599,12 @@ const getGetPricesQueryOptions = (options)=>{
     };
 };
 function useGetPrices(options) {
-    _s8();
+    _s9();
     const queryOptions = getGetPricesQueryOptions(options);
     const query = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"])(queryOptions);
     return withQueryKey(query, queryOptions.queryKey);
 }
-_s8(useGetPrices, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
+_s9(useGetPrices, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"]
     ];
@@ -1534,12 +1647,12 @@ const getGetPriceUpdateQueryOptions = (params, options)=>{
     };
 };
 function useGetPriceUpdate(params, options) {
-    _s9();
+    _s10();
     const queryOptions = getGetPriceUpdateQueryOptions(params, options);
     const query = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"])(queryOptions);
     return withQueryKey(query, queryOptions.queryKey);
 }
-_s9(useGetPriceUpdate, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
+_s10(useGetPriceUpdate, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"]
     ];
@@ -1572,12 +1685,12 @@ const getGetMarketStatsQueryOptions = (options)=>{
     };
 };
 function useGetMarketStats(options) {
-    _s10();
+    _s11();
     const queryOptions = getGetMarketStatsQueryOptions(options);
     const query = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"])(queryOptions);
     return withQueryKey(query, queryOptions.queryKey);
 }
-_s10(useGetMarketStats, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
+_s11(useGetMarketStats, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"]
     ];
@@ -1620,12 +1733,12 @@ const getListRequestsQueryOptions = (params, options)=>{
     };
 };
 function useListRequests(params, options) {
-    _s11();
+    _s12();
     const queryOptions = getListRequestsQueryOptions(params, options);
     const query = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"])(queryOptions);
     return withQueryKey(query, queryOptions.queryKey);
 }
-_s11(useListRequests, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
+_s12(useListRequests, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"]
     ];
@@ -1659,12 +1772,12 @@ const getGetRequestQueryOptions = (id, options)=>{
     };
 };
 function useGetRequest(id, options) {
-    _s12();
+    _s13();
     const queryOptions = getGetRequestQueryOptions(id, options);
     const query = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"])(queryOptions);
     return withQueryKey(query, queryOptions.queryKey);
 }
-_s12(useGetRequest, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
+_s13(useGetRequest, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"]
     ];
@@ -1707,12 +1820,12 @@ const getListLoansQueryOptions = (params, options)=>{
     };
 };
 function useListLoans(params, options) {
-    _s13();
+    _s14();
     const queryOptions = getListLoansQueryOptions(params, options);
     const query = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"])(queryOptions);
     return withQueryKey(query, queryOptions.queryKey);
 }
-_s13(useListLoans, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
+_s14(useListLoans, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"]
     ];
@@ -1746,12 +1859,12 @@ const getGetLoanQueryOptions = (id, options)=>{
     };
 };
 function useGetLoan(id, options) {
-    _s14();
+    _s15();
     const queryOptions = getGetLoanQueryOptions(id, options);
     const query = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"])(queryOptions);
     return withQueryKey(query, queryOptions.queryKey);
 }
-_s14(useGetLoan, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
+_s15(useGetLoan, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"]
     ];
@@ -1794,12 +1907,12 @@ const getListListingsQueryOptions = (params, options)=>{
     };
 };
 function useListListings(params, options) {
-    _s15();
+    _s16();
     const queryOptions = getListListingsQueryOptions(params, options);
     const query = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"])(queryOptions);
     return withQueryKey(query, queryOptions.queryKey);
 }
-_s15(useListListings, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
+_s16(useListListings, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"]
     ];
@@ -1842,12 +1955,12 @@ const getListActivityQueryOptions = (params, options)=>{
     };
 };
 function useListActivity(params, options) {
-    _s16();
+    _s17();
     const queryOptions = getListActivityQueryOptions(params, options);
     const query = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"])(queryOptions);
     return withQueryKey(query, queryOptions.queryKey);
 }
-_s16(useListActivity, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
+_s17(useListActivity, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"]
     ];
@@ -1890,12 +2003,12 @@ const getListRatesQueryOptions = (params, options)=>{
     };
 };
 function useListRates(params, options) {
-    _s17();
+    _s18();
     const queryOptions = getListRatesQueryOptions(params, options);
     const query = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"])(queryOptions);
     return withQueryKey(query, queryOptions.queryKey);
 }
-_s17(useListRates, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
+_s18(useListRates, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"]
     ];
@@ -1928,12 +2041,12 @@ const getGetRateCurveQueryOptions = (options)=>{
     };
 };
 function useGetRateCurve(options) {
-    _s18();
+    _s19();
     const queryOptions = getGetRateCurveQueryOptions(options);
     const query = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"])(queryOptions);
     return withQueryKey(query, queryOptions.queryKey);
 }
-_s18(useGetRateCurve, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
+_s19(useGetRateCurve, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"]
     ];
@@ -1966,12 +2079,12 @@ const getGetLeaderboardQueryOptions = (options)=>{
     };
 };
 function useGetLeaderboard(options) {
-    _s19();
+    _s20();
     const queryOptions = getGetLeaderboardQueryOptions(options);
     const query = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"])(queryOptions);
     return withQueryKey(query, queryOptions.queryKey);
 }
-_s19(useGetLeaderboard, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
+_s20(useGetLeaderboard, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"]
     ];
@@ -2005,12 +2118,12 @@ const getGetPortfolioQueryOptions = (address, options)=>{
     };
 };
 function useGetPortfolio(address, options) {
-    _s20();
+    _s21();
     const queryOptions = getGetPortfolioQueryOptions(address, options);
     const query = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"])(queryOptions);
     return withQueryKey(query, queryOptions.queryKey);
 }
-_s20(useGetPortfolio, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
+_s21(useGetPortfolio, "c7fxJWDO4uMGjIdKMJSj1aiS9wg=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useQuery$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useQuery"]
     ];

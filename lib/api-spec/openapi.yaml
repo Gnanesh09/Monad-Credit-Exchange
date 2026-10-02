@@ -83,6 +83,54 @@ paths:
         "204":
           description: Signed out
 
+  /session/resume:
+    post:
+      operationId: resumeSession
+      tags: [session]
+      summary: Enter as an existing guest
+      description: >-
+        Opens a new session for a guest that already exists. A guest with a linked wallet can only
+        be resumed with a fresh "Citrine guest sign-in" message signed by that wallet.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResumeSession"
+      responses:
+        "201":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: The signature does not match the linked wallet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The guest has a linked wallet and no signature was sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No guest uses that name
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: The signed message was already used
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /session/me:
     get:
       operationId: getMe
@@ -499,16 +547,36 @@ components:
       properties:
         username:
           type: string
+          description: The name as checked, or the stored spelling when a guest already uses it.
         available:
           type: boolean
         reason:
           type: [string, "null"]
-      required: [username, available, reason]
+        exists:
+          type: boolean
+          description: True when a guest already uses this name and can be resumed.
+        wallet:
+          type: [string, "null"]
+          description: The wallet linked to that guest. Resuming it needs a signature from this wallet.
+      required: [username, available, reason, exists, wallet]
 
     NewSession:
       type: object
       properties:
         username:
+          type: string
+      required: [username]
+
+    ResumeSession:
+      type: object
+      properties:
+        username:
+          type: string
+        address:
+          type: string
+        message:
+          type: string
+        signature:
           type: string
       required: [username]
 

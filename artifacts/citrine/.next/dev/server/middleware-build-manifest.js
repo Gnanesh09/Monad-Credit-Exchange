@@ -37,19 +37,6 @@ globalThis.__BUILD_MANIFEST = {
       "static/chunks/turbopack-artifacts_citrine_09-exda._.js",
       "static/chunks/artifacts_citrine_219uq1s._.js"
     ],
-    "/app/page": [
-      "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_0-fiebf._.js",
-      "static/chunks/0ibb_next_dist_compiled_next-devtools_index_03lj75o.js",
-      "static/chunks/0ibb_next_dist_compiled_react-dom_0fi_nby._.js",
-      "static/chunks/0ibb_next_dist_compiled_react-server-dom-turbopack_0b8n_c5._.js",
-      "static/chunks/0ibb_next_dist_compiled_1w7l-t1._.js",
-      "static/chunks/0ibb_next_dist_client_04n-erx._.js",
-      "static/chunks/0ibb_next_dist_12ed823._.js",
-      "static/chunks/0zix_@swc_helpers_cjs_0hi-e47._.js",
-      "static/chunks/artifacts_citrine_1anvha4._.js",
-      "static/chunks/turbopack-artifacts_citrine_09-exda._.js",
-      "static/chunks/artifacts_citrine_1670ime._.js"
-    ],
     "/start/page": [
       "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_0-fiebf._.js",
       "static/chunks/0ibb_next_dist_compiled_next-devtools_index_03lj75o.js",
@@ -63,7 +50,7 @@ globalThis.__BUILD_MANIFEST = {
       "static/chunks/turbopack-artifacts_citrine_09-exda._.js",
       "static/chunks/artifacts_citrine_1hul7rl._.js"
     ],
-    "/app/requests/[id]/page": [
+    "/app/page": [
       "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_0-fiebf._.js",
       "static/chunks/0ibb_next_dist_compiled_next-devtools_index_03lj75o.js",
       "static/chunks/0ibb_next_dist_compiled_react-dom_0fi_nby._.js",
@@ -74,7 +61,59 @@ globalThis.__BUILD_MANIFEST = {
       "static/chunks/0zix_@swc_helpers_cjs_0hi-e47._.js",
       "static/chunks/artifacts_citrine_1anvha4._.js",
       "static/chunks/turbopack-artifacts_citrine_09-exda._.js",
-      "static/chunks/artifacts_citrine_0-wh9rl._.js"
+      "static/chunks/artifacts_citrine_1670ime._.js"
+    ],
+    "/app/borrow/page": [
+      "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_0-fiebf._.js",
+      "static/chunks/0ibb_next_dist_compiled_next-devtools_index_03lj75o.js",
+      "static/chunks/0ibb_next_dist_compiled_react-dom_0fi_nby._.js",
+      "static/chunks/0ibb_next_dist_compiled_react-server-dom-turbopack_0b8n_c5._.js",
+      "static/chunks/0ibb_next_dist_compiled_1w7l-t1._.js",
+      "static/chunks/0ibb_next_dist_client_04n-erx._.js",
+      "static/chunks/0ibb_next_dist_12ed823._.js",
+      "static/chunks/0zix_@swc_helpers_cjs_0hi-e47._.js",
+      "static/chunks/artifacts_citrine_1anvha4._.js",
+      "static/chunks/turbopack-artifacts_citrine_09-exda._.js",
+      "static/chunks/artifacts_citrine_077-bk-._.js"
+    ],
+    "/app/lend/page": [
+      "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_0-fiebf._.js",
+      "static/chunks/0ibb_next_dist_compiled_next-devtools_index_03lj75o.js",
+      "static/chunks/0ibb_next_dist_compiled_react-dom_0fi_nby._.js",
+      "static/chunks/0ibb_next_dist_compiled_react-server-dom-turbopack_0b8n_c5._.js",
+      "static/chunks/0ibb_next_dist_compiled_1w7l-t1._.js",
+      "static/chunks/0ibb_next_dist_client_04n-erx._.js",
+      "static/chunks/0ibb_next_dist_12ed823._.js",
+      "static/chunks/0zix_@swc_helpers_cjs_0hi-e47._.js",
+      "static/chunks/artifacts_citrine_1anvha4._.js",
+      "static/chunks/turbopack-artifacts_citrine_09-exda._.js",
+      "static/chunks/artifacts_citrine_0vvocr1._.js"
+    ],
+    "/app/trade/page": [
+      "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_0-fiebf._.js",
+      "static/chunks/0ibb_next_dist_compiled_next-devtools_index_03lj75o.js",
+      "static/chunks/0ibb_next_dist_compiled_react-dom_0fi_nby._.js",
+      "static/chunks/0ibb_next_dist_compiled_react-server-dom-turbopack_0b8n_c5._.js",
+      "static/chunks/0ibb_next_dist_compiled_1w7l-t1._.js",
+      "static/chunks/0ibb_next_dist_client_04n-erx._.js",
+      "static/chunks/0ibb_next_dist_12ed823._.js",
+      "static/chunks/0zix_@swc_helpers_cjs_0hi-e47._.js",
+      "static/chunks/artifacts_citrine_1anvha4._.js",
+      "static/chunks/turbopack-artifacts_citrine_09-exda._.js",
+      "static/chunks/artifacts_citrine_06et6tg._.js"
+    ],
+    "/app/portfolio/page": [
+      "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_0-fiebf._.js",
+      "static/chunks/0ibb_next_dist_compiled_next-devtools_index_03lj75o.js",
+      "static/chunks/0ibb_next_dist_compiled_react-dom_0fi_nby._.js",
+      "static/chunks/0ibb_next_dist_compiled_react-server-dom-turbopack_0b8n_c5._.js",
+      "static/chunks/0ibb_next_dist_compiled_1w7l-t1._.js",
+      "static/chunks/0ibb_next_dist_client_04n-erx._.js",
+      "static/chunks/0ibb_next_dist_12ed823._.js",
+      "static/chunks/0zix_@swc_helpers_cjs_0hi-e47._.js",
+      "static/chunks/artifacts_citrine_1anvha4._.js",
+      "static/chunks/turbopack-artifacts_citrine_09-exda._.js",
+      "static/chunks/artifacts_citrine_0zfrf4c._.js"
     ],
     "/app/loans/[id]/page": [
       "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_0-fiebf._.js",
@@ -89,7 +128,7 @@ globalThis.__BUILD_MANIFEST = {
       "static/chunks/turbopack-artifacts_citrine_09-exda._.js",
       "static/chunks/artifacts_citrine_0uf4vat._.js"
     ],
-    "/app/portfolio/page": [
+    "/app/requests/[id]/page": [
       "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_0-fiebf._.js",
       "static/chunks/0ibb_next_dist_compiled_next-devtools_index_03lj75o.js",
       "static/chunks/0ibb_next_dist_compiled_react-dom_0fi_nby._.js",
@@ -100,7 +139,7 @@ globalThis.__BUILD_MANIFEST = {
       "static/chunks/0zix_@swc_helpers_cjs_0hi-e47._.js",
       "static/chunks/artifacts_citrine_1anvha4._.js",
       "static/chunks/turbopack-artifacts_citrine_09-exda._.js",
-      "static/chunks/artifacts_citrine_0zfrf4c._.js"
+      "static/chunks/artifacts_citrine_0-wh9rl._.js"
     ]
   },
   "pagesChunkGroupBootstrapParams": {},

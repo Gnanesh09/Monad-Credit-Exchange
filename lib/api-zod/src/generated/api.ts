@@ -24,9 +24,11 @@ export const CheckUsernameQueryParams = zod.object({
 })
 
 export const CheckUsernameResponse = zod.object({
-  "username": zod.string(),
+  "username": zod.string().describe('The name as checked, or the stored spelling when a guest already uses it.'),
   "available": zod.boolean(),
-  "reason": zod.string().nullable()
+  "reason": zod.string().nullable(),
+  "exists": zod.boolean().describe('True when a guest already uses this name and can be resumed.'),
+  "wallet": zod.string().nullable().describe('The wallet linked to that guest. Resuming it needs a signature from this wallet.')
 })
 
 
@@ -52,6 +54,28 @@ export const CreateSessionResponse = zod.object({
  * @summary Sign out of the guest session
  */
 export const EndSessionResponse = zod.void()
+
+
+/**
+ * Opens a new session for a guest that already exists. A guest with a linked wallet can only be resumed with a fresh "Citrine guest sign-in" message signed by that wallet.
+ * @summary Enter as an existing guest
+ */
+export const ResumeSessionBody = zod.object({
+  "username": zod.string(),
+  "address": zod.string().optional(),
+  "message": zod.string().optional(),
+  "signature": zod.string().optional()
+})
+
+export const ResumeSessionResponse = zod.object({
+  "token": zod.string(),
+  "user": zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "wallet": zod.string().nullable(),
+  "createdAt": zod.coerce.date()
+})
+})
 
 
 /**

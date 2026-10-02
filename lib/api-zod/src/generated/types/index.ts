@@ -50,6 +50,7 @@ export * from './protocolParameters';
 export * from './ratePoint';
 export * from './requestStatus';
 export * from './requestStatusFilter';
+export * from './resumeSession';
 export * from './session';
 export * from './unauthorizedResponse';
 export * from './usernameCheck';

@@ -6,3 +6,5 @@ description: Next 16 dev-server and hydration issues in the Replit preview, plus
 - Any value derived from Date.now() rendered during SSR causes a hydration mismatch. Start "now" as null on the server and set it in an effect.
   **How to apply:** for countdowns, ages and "x minutes ago", read time only on the client.
 - Replit's edge proxy replaces client-supplied X-Forwarded-For (checked with a spoofed header), so with trust proxy enabled the leftmost entry is the real client.
+- Browser checks that need typing or clicking: install playwright-core under /tmp (never the workspace) and launch with executablePath /repl/tools/bin/chromium and --no-sandbox. /tmp is wiped between sessions, so expect to reinstall.
+  **How to apply:** scripts that need viem or mongodb must run from artifacts/api-server (copy in, run, delete).

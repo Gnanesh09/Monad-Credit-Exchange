@@ -3288,6 +3288,16 @@
     }
   }
 
+  .ring-primary\/30 {
+    --tw-ring-color: hsl(var(--primary));
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .ring-primary\/30 {
+      --tw-ring-color: color-mix(in oklab, hsl(var(--primary)) 30%, transparent);
+    }
+  }
+
   .ring-primary\/50 {
     --tw-ring-color: hsl(var(--primary));
   }

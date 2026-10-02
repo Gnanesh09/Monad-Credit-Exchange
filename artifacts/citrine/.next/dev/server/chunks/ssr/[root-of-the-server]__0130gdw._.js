@@ -233,6 +233,8 @@ function isUnauthorized(error) {
 __turbopack_context__.s([
     "SessionProvider",
     ()=>SessionProvider,
+    "guestSignInMessage",
+    ()=>guestSignInMessage,
     "useSession",
     ()=>useSession,
     "walletLinkMessage",
@@ -271,6 +273,14 @@ function storeToken(token) {
 function walletLinkMessage(username, address, issuedAt) {
     return [
         "Citrine wallet link",
+        `Guest: @${username}`,
+        `Wallet: ${address}`,
+        `Issued: ${issuedAt}`
+    ].join("\n");
+}
+function guestSignInMessage(username, address, issuedAt) {
+    return [
+        "Citrine guest sign-in",
         `Guest: @${username}`,
         `Wallet: ${address}`,
         `Issued: ${issuedAt}`
@@ -320,6 +330,34 @@ function SessionProvider({ children }) {
     }, [
         queryClient
     ]);
+    const resume = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$3$2e$8_$40$types$2b$node$40$25$2e$9$2e$6_react$2d$dom$40$19$2e$1$2e$0_react$40$19$2e$1$2e$0_$5f$react$40$19$2e$1$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useCallback"])(async (username, linkedWallet)=>{
+        let proof = {};
+        if (linkedWallet) {
+            if (!address) throw new Error("Connect the wallet linked to this guest first.");
+            if (address.toLowerCase() !== linkedWallet.toLowerCase()) throw new Error("Switch to the wallet linked to this guest.");
+            const message = guestSignInMessage(username, address, new Date().toISOString());
+            const signature = await signMessageAsync({
+                message
+            });
+            proof = {
+                address,
+                message,
+                signature
+            };
+        }
+        const session = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2d$client$2d$react$2f$src$2f$generated$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["resumeSession"])({
+            username,
+            ...proof
+        });
+        storeToken(session.token);
+        setToken(session.token);
+        queryClient.setQueryData((0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2d$client$2d$react$2f$src$2f$generated$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["getGetMeQueryKey"])(), session.user);
+        return session.user;
+    }, [
+        address,
+        signMessageAsync,
+        queryClient
+    ]);
     const signOut = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$3$2e$8_$40$types$2b$node$40$25$2e$9$2e$6_react$2d$dom$40$19$2e$1$2e$0_react$40$19$2e$1$2e$0_$5f$react$40$19$2e$1$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useCallback"])(async ()=>{
         try {
             if (currentToken) await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2d$client$2d$react$2f$src$2f$generated$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["endSession"])();
@@ -364,6 +402,7 @@ function SessionProvider({ children }) {
             ready,
             user,
             enter,
+            resume,
             signOut,
             linkWallet,
             unlinkWallet
@@ -371,6 +410,7 @@ function SessionProvider({ children }) {
         ready,
         user,
         enter,
+        resume,
         signOut,
         linkWallet,
         unlinkWallet
@@ -380,7 +420,7 @@ function SessionProvider({ children }) {
         children: children
     }, void 0, false, {
         fileName: "[project]/artifacts/citrine/src/lib/session.tsx",
-        lineNumber: 122,
+        lineNumber: 152,
         columnNumber: 10
     }, this);
 }
@@ -878,6 +918,12 @@ __turbopack_context__.s([
     ()=>getRateCurve,
     "getRequest",
     ()=>getRequest,
+    "getResumeSessionMutationKey",
+    ()=>getResumeSessionMutationKey,
+    "getResumeSessionMutationOptions",
+    ()=>getResumeSessionMutationOptions,
+    "getResumeSessionUrl",
+    ()=>getResumeSessionUrl,
     "getUnlinkWalletMutationKey",
     ()=>getUnlinkWalletMutationKey,
     "getUnlinkWalletMutationOptions",
@@ -898,6 +944,8 @@ __turbopack_context__.s([
     ()=>listRates,
     "listRequests",
     ()=>listRequests,
+    "resumeSession",
+    ()=>resumeSession,
     "unlinkWallet",
     ()=>unlinkWallet,
     "useCheckUsername",
@@ -940,6 +988,8 @@ __turbopack_context__.s([
     ()=>useListRates,
     "useListRequests",
     ()=>useListRequests,
+    "useResumeSession",
+    ()=>useResumeSession,
     "useUnlinkWallet",
     ()=>useUnlinkWallet
 ]);
@@ -1135,6 +1185,61 @@ const getEndSessionMutationOptions = (options)=>{
 };
 const useEndSession = (options)=>{
     return (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useMutation$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useMutation"])(getEndSessionMutationOptions(options));
+};
+const getResumeSessionUrl = ()=>{
+    return `/api/session/resume`;
+};
+const resumeSession = async (resumeSessionBody, options)=>{
+    const getHeaders = (h)=>{
+        if (!h) return {};
+        if (h instanceof Headers) return Object.fromEntries(h.entries());
+        if (Symbol.iterator in h) {
+            return Object.fromEntries(Array.from(h, (entry)=>Array.from(entry)));
+        }
+        const headers = {};
+        for (const [name, value] of Object.entries(h)){
+            if (value !== undefined) headers[name] = value;
+        }
+        return headers;
+    };
+    return (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2d$client$2d$react$2f$src$2f$custom$2d$fetch$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["customFetch"])(getResumeSessionUrl(), {
+        ...options,
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...getHeaders(options?.headers)
+        },
+        body: JSON.stringify(resumeSessionBody)
+    });
+};
+const getResumeSessionMutationKey = ()=>[
+        'resumeSession'
+    ];
+const getResumeSessionMutationOptions = (options)=>{
+    const mutationKey = getResumeSessionMutationKey();
+    const { mutation: mutationOptions, request: requestOptions } = options ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ? options : {
+        ...options,
+        mutation: {
+            ...options.mutation,
+            mutationKey
+        }
+    } : {
+        mutation: {
+            mutationKey
+        },
+        request: undefined
+    };
+    const mutationFn = (props)=>{
+        const { data } = props ?? {};
+        return resumeSession(data, requestOptions);
+    };
+    return {
+        mutationFn,
+        ...mutationOptions
+    };
+};
+const useResumeSession = (options)=>{
+    return (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$tanstack$2b$react$2d$query$40$5$2e$102$2e$8_react$40$19$2e$1$2e$0$2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useMutation$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useMutation"])(getResumeSessionMutationOptions(options));
 };
 const getGetMeUrl = ()=>{
     return `/api/session/me`;

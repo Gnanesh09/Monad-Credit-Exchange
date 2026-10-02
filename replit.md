@@ -28,6 +28,7 @@ A decentralized credit exchange on Monad testnet: borrowers post collateralized 
 - MongoDB is only a read model plus guest identities; the contract is the source of truth. The indexer re-reads contract state after events instead of trusting event payloads alone.
 - State reads are pinned to the indexed block number, because the public Monad RPC is load-balanced and a lagging node answers `latest` with stale state.
 - No authentication: guests pick a username (bearer token stored on device) and can link a wallet via a signed message.
+- Entering an existing username offers to continue as that guest (user request). Guests without a wallet resume freely; a linked wallet must sign a "Citrine guest sign-in" message, and linking a wallet ends the guest's other sessions.
 - The keeper shares the deployer key, so scripts must not send from the deployer while the API is running (nonce collisions).
 - Indexer and keeper run only on the instance holding the MongoDB `leases` lease (`lib/leader.ts`). Anything new that writes the index or signs transactions must call the fence or `isLeader()` right before the write. The dev workflow does not forward SIGTERM, so after a restart the new process waits up to 30 s for the old lease to expire.
 - Monad bills the full gas limit, so transactions use the estimate plus a 15% buffer rather than a large fixed limit.

@@ -1,26 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, Loader2, X } from "lucide-react";
-import { useCheckUsername, getCheckUsernameQueryKey, useGetMarketStats, getGetMarketStatsQueryKey } from "@workspace/api-client-react";
+import { useAccount } from "wagmi";
+import { ArrowLeft, ArrowRight, Check, Loader2, UserRound, Wallet, X } from "lucide-react";
+import { ApiError, useCheckUsername, getCheckUsernameQueryKey, useGetMarketStats, getGetMarketStatsQueryKey } from "@workspace/api-client-react";
 import { useSession } from "@/lib/session";
 import { apiErrorMessage } from "@/lib/api-error";
+import { readableError } from "@/lib/web3/errors";
 import { Logo, AnimatedNumber } from "@/components/citrine/primitives";
-import { formatRate } from "@/lib/format";
+import { ConnectDialog } from "@/components/citrine/wallet";
+import { formatRate, shortAddress } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const VALID = /^[a-zA-Z0-9_]{3,20}$/;
 
+/** API errors carry their message in the body; wallet errors (a rejected signature) do not. */
+function enterError(error: unknown, fallback: string): string {
+  return error instanceof ApiError ? apiErrorMessage(error, fallback) : readableError(error);
+}
+
 export default function StartPage() {
   const router = useRouter();
-  const { ready, user, enter, signOut } = useSession();
+  const { ready, user, enter, resume, signOut } = useSession();
+  const { address } = useAccount();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
   const [debounced, setDebounced] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [connectOpen, setConnectOpen] = useState(false);
   const stats = useGetMarketStats({ query: { queryKey: getGetMarketStatsQueryKey(), refetchInterval: 5_000 } });
 
   useEffect(() => {
@@ -28,30 +39,48 @@ export default function StartPage() {
     return () => clearTimeout(t);
   }, [name]);
 
+  // A different name starts over.
+  useEffect(() => setError(null), [debounced]);
+
   const formatOk = VALID.test(debounced);
   const check = useCheckUsername({ username: debounced }, { query: { queryKey: getCheckUsernameQueryKey({ username: debounced }), enabled: formatOk } });
   const typing = name.trim() !== debounced;
-  const available = formatOk && !typing && check.data?.available === true;
+  const result = formatOk && !typing ? check.data : undefined;
+  const available = result?.available === true;
+  // The name belongs to a guest already. Offer to continue as them; a linked wallet must sign.
+  const existing = result?.exists ? { username: result.username, wallet: result.wallet } : null;
+  const walletMatches = !!existing?.wallet && !!address && address.toLowerCase() === existing.wallet.toLowerCase();
+  const canResume = !!existing && (!existing.wallet || walletMatches);
 
-  let hint: { tone: "ok" | "bad" | "idle"; text: string } = { tone: "idle", text: "3 to 20 letters, numbers or underscores." };
+  let hint: { tone: "ok" | "bad" | "info" | "idle"; text: string } = { tone: "idle", text: "3 to 20 letters, numbers or underscores." };
   if (name && !typing) {
     if (!formatOk) hint = { tone: "bad", text: "Use 3 to 20 letters, numbers or underscores." };
     else if (check.isFetching && !check.data) hint = { tone: "idle", text: "Checking" };
-    else if (check.data?.available) hint = { tone: "ok", text: `@${check.data.username} is yours to take.` };
-    else if (check.data) hint = { tone: "bad", text: check.data.reason ?? "That name is taken." };
+    else if (result?.available) hint = { tone: "ok", text: `@${result.username} is yours to take.` };
+    else if (existing) hint = { tone: "info", text: `@${existing.username} already exists.` };
+    else if (result) hint = { tone: "bad", text: result.reason ?? "That name is taken." };
   }
 
   const submit = async () => {
-    if (!available) return;
+    if (submitting || !(available || canResume)) return;
     setSubmitting(true);
     setError(null);
     try {
-      await enter(debounced);
+      if (existing) await resume(existing.username, existing.wallet);
+      else await enter(debounced);
       router.push("/app");
     } catch (e) {
-      setError(apiErrorMessage(e, "Could not create your guest session."));
+      setError(enterError(e, existing ? `Could not enter as @${existing.username}.` : "Could not create your guest session."));
       setSubmitting(false);
+      // Someone may have taken the name since the check; refresh it so the page can offer it.
+      if (e instanceof ApiError && e.status === 409 && !existing) void check.refetch();
     }
+  };
+
+  const pickAnother = () => {
+    setName("");
+    setError(null);
+    inputRef.current?.focus();
   };
 
   return (
@@ -91,9 +120,10 @@ export default function StartPage() {
                   void submit();
                 }}
               >
-                <div className={cn("flex items-center rounded-2xl bg-card px-5 ring-1 ring-inset transition-shadow", hint.tone === "ok" ? "ring-positive/50" : hint.tone === "bad" ? "ring-destructive/50" : "ring-border focus-within:ring-primary/60")}>
+                <div className={cn("flex items-center rounded-2xl bg-card px-5 ring-1 ring-inset transition-shadow", hint.tone === "ok" ? "ring-positive/50" : hint.tone === "bad" ? "ring-destructive/50" : hint.tone === "info" ? "ring-primary/50" : "ring-border focus-within:ring-primary/60")}>
                   <span className="font-display text-2xl text-muted-foreground">@</span>
                   <input
+                    ref={inputRef}
                     autoFocus
                     value={name}
                     onChange={(e) => setName(e.target.value.replace(/\s/g, ""))}
@@ -103,22 +133,65 @@ export default function StartPage() {
                     data-testid="input-username"
                   />
                   <span className="w-6">
-                    {name && (typing || check.isFetching) ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : hint.tone === "ok" ? <Check className="h-5 w-5 text-positive" /> : hint.tone === "bad" ? <X className="h-5 w-5 text-destructive" /> : null}
+                    {name && (typing || check.isFetching) ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : hint.tone === "ok" ? <Check className="h-5 w-5 text-positive" /> : hint.tone === "bad" ? <X className="h-5 w-5 text-destructive" /> : hint.tone === "info" ? <UserRound className="h-5 w-5 text-primary" /> : null}
                   </span>
                 </div>
                 <AnimatePresence mode="wait">
-                  <motion.p key={hint.text} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className={cn("mt-3 text-sm", hint.tone === "ok" ? "text-positive" : hint.tone === "bad" ? "text-destructive" : "text-muted-foreground")}>
+                  <motion.p key={hint.text} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className={cn("mt-3 text-sm", hint.tone === "ok" ? "text-positive" : hint.tone === "bad" ? "text-destructive" : hint.tone === "info" ? "text-primary" : "text-muted-foreground")}>
                     {hint.text}
                   </motion.p>
                 </AnimatePresence>
-                {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
-                <button type="submit" disabled={!available || submitting} className="mt-8 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary font-medium text-primary-foreground transition-opacity disabled:opacity-35" data-testid="button-enter">
-                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Enter as guest
-                  {!submitting && <ArrowRight className="h-4 w-4" />}
-                </button>
+                <AnimatePresence initial={false}>
+                  {existing && (
+                    <motion.div
+                      key={existing.username}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 8 }}
+                      className="mt-6 rounded-2xl bg-card p-5 ring-1 ring-inset ring-primary/30"
+                      data-testid="card-existing-guest"
+                    >
+                      <p className="font-display text-xl font-semibold">Is this you?</p>
+                      <p className="mt-1.5 text-sm text-muted-foreground">
+                        {existing.wallet
+                          ? `@${existing.username} is linked to ${shortAddress(existing.wallet)}. Sign with that wallet to enter as this guest.`
+                          : `Enter as @${existing.username} to pick up where you left off, or choose a different name.`}
+                      </p>
+                      {existing.wallet && address && !walletMatches && (
+                        <p className="mt-3 text-sm text-destructive">
+                          Your wallet is on {shortAddress(address)}. Switch to {shortAddress(existing.wallet)} to continue.
+                        </p>
+                      )}
+                      <div className="mt-5 flex flex-wrap gap-3">
+                        {existing.wallet && !address ? (
+                          <button type="button" onClick={() => setConnectOpen(true)} className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground" data-testid="button-connect-existing">
+                            <Wallet className="h-4 w-4" /> Connect wallet
+                          </button>
+                        ) : (
+                          <button type="submit" disabled={!canResume || submitting} className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-opacity disabled:opacity-35" data-testid="button-resume">
+                            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                            {existing.wallet ? `Sign in as @${existing.username}` : `Enter as @${existing.username}`}
+                            {!submitting && <ArrowRight className="h-4 w-4" />}
+                          </button>
+                        )}
+                        <button type="button" onClick={pickAnother} className="h-11 rounded-full px-5 text-sm text-muted-foreground ring-1 ring-inset ring-border hover:text-foreground" data-testid="button-pick-another">
+                          Use another name
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+                {!existing && (
+                  <button type="submit" disabled={!available || submitting} className="mt-8 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary font-medium text-primary-foreground transition-opacity disabled:opacity-35" data-testid="button-enter">
+                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    Enter as guest
+                    {!submitting && <ArrowRight className="h-4 w-4" />}
+                  </button>
+                )}
                 <p className="mt-4 text-center text-xs text-muted-foreground">No email, no password. Your session lives on this device.</p>
               </form>
+              <ConnectDialog open={connectOpen} onOpenChange={setConnectOpen} />
             </motion.div>
           )}
         </div>
