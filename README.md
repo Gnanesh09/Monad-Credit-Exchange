@@ -1,5 +1,12 @@
-# Citrine
+<div align="center">
 
+<img src="3a9615ed-b9de-441b-907a-13488cabddaf.png" alt="Citrine" width="420" />
+
+### Citrine
+
+**Building intelligent solutions with precision.**
+
+</div>
 Citrine is a credit exchange on Monad. Borrowers lock collateral and post a loan request with the highest rate they would pay. Lenders compete in an onchain auction to fund it, bidding the rate down. The winning loan is minted as an NFT position that the lender can sell to someone else before it matures.
 
 Built for the Metropolis Hackathon, Track 01: Onchain Finance & Trading.
