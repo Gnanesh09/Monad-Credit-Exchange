@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="3a9615ed-b9de-441b-907a-13488cabddaf.png" alt="Citrine" width="420" />
+<img src="3a9615ed-b9de-441b-907a-13488cabddaf.png" alt="Citrine" width="full" />
 
 ### Citrine
 
